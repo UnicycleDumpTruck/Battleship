@@ -1,5 +1,7 @@
 from enum import Enum
 from random import randint, choice
+from collections import namedtuple
+from typing import NamedTuple
 
 try:
     from typing import Tuple
@@ -25,6 +27,10 @@ ship_sizes = {
 }
 
 
+# Used to represent coordinates of guess shot and char of hit/miss.
+# Shot = namedtuple("Shot", ["x", "y", "c"])
+
+
 class Ship:
     """Ships of the fleet."""
 
@@ -34,27 +40,33 @@ class Ship:
         ship_size: int,
         ship_start: Tuple[int, int],
         ship_horiz: bool,
+        ship_temp: bool = False,
     ):
         self.ship_type = ship_type
         self.ship_size = ship_size
         self.ship_horiz = ship_horiz
+        self.ship_temp = ship_temp
         self.ship_sunk = False
         self.ship_coords = dict()
         if ship_horiz:
             for i in range(ship_size):
-                self.ship_coords[((ship_start[0] + i), ship_start[1])] = "S"
+                self.ship_coords[((ship_start[0] + i), ship_start[1])] = self.char()
         else:
             for i in range(ship_size):
-                self.ship_coords[((ship_start[0]), ship_start[1] + i)] = "S"
+                self.ship_coords[((ship_start[0]), ship_start[1] + i)] = self.char()
+
+    def char(self):
+        if self.ship_temp:
+            return "*"
+        return self.ship_type[0]
 
     def __repr__(self):
-        return f"{self.ship_type}, {self.ship_horiz}, size {self.ship_size},\
-             on {self.ship_coords.items()}"
+        return f"{self.ship_type}, on {self.ship_coords.items()}"
 
     def take_fire(self, coord):
         if self.ship_coords.get(coord):
             self.ship_coords[coord] = "H"  # Hit!
-            if not any([ch == "S" for ch in self.ship_coords.values()]):
+            if not any([ch != "H" for ch in self.ship_coords.values()]):
                 self.sink()
             return True
 
@@ -77,10 +89,7 @@ class Grid:
         self.name = name
         self.grid = [["w" for i in range(GRID_SIZE)] for j in range(GRID_SIZE)]
         self.taken_coords = set()
-
-    def refresh_grid(self):
-        """Rebuild grid from ships to accomadate recent shots."""
-        pass
+        self.ships = set()
 
     def print_grid(self):
         """Transfer grid to string then print to console."""
@@ -100,13 +109,27 @@ class Grid:
         print(grid_str)
 
 
+# class Guesses(Grid):
+#     def __init__(self, name):
+#         super().__init__(name)
+#         self.guesses = set(NamedTuple)
+
+#     def record_fire(self, coords: Shot):
+#         if coords not in self.guesses:
+#             self.guesses.add(coords)
+#             self.refresh_grid()
+#         else:
+#             raise ValueError("Repeat guess.")
+
+
 class Fleet(Grid):
     def __init__(self, name):
         super().__init__(name)
-        self.ships = []
+        self.ships = set()
 
     def refresh_grid(self):
         """Rebuild grid from ships to accomadate recent shots."""
+        self.grid = [["w" for i in range(GRID_SIZE)] for j in range(GRID_SIZE)]
         for ship in self.ships:
             for coord in ship.ship_coords.keys():
                 self.grid[coord[0]][coord[1]] = ship.ship_coords[coord]
@@ -121,11 +144,28 @@ class Fleet(Grid):
 
     def add_ship(self, ship: Ship) -> None:
         if self.valid_anchor(ship):
-            self.ships.append(ship)
+            ship.ship_temp = False
+            self.ships.add(ship)
             for coord in ship.ship_coords.keys():
+                ship.ship_coords[coord] = ship.char()
                 self.taken_coords.add(coord)
         else:
             raise ValueError("Can't add ship there, it overlaps other ships.")
+
+    def add_tentative_ship(self, ship: Ship) -> None:
+        if self.valid_anchor(ship):
+            self.ships.add(ship)
+            self.refresh_grid()
+            self.print_grid()
+            print(self.ships)
+
+    def remove_tentative_ship(self, ship: Ship) -> None:
+        print(ship in self.ships)
+        self.ships.remove(ship)
+        print(ship in self.ships)
+        self.refresh_grid()
+        self.print_grid()
+        print(self.ships)
 
     def valid_coords(self, coords) -> bool:
         if (coords[0] >= GRID_SIZE) or (coords[1] >= GRID_SIZE):

@@ -75,7 +75,6 @@ class HVCCombat(Combat):
                     col_guess = col_guess - 1
                     break
 
-            print(row_guess, col_guess)
             self.computer_fleet.take_fire(Point(y=row_guess, x=col_guess))
             self.computer_fleet.print_grid()
 

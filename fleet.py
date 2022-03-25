@@ -63,59 +63,6 @@ def point_valid(point: Point):
     return True
 
 
-# class Point:
-#     """Hold coordinate point for a ship, methods to move."""
-
-#     def __init__(self, y: int, x: int) -> None:
-#         self.x = x
-#         self.y = y
-#         # self.c = c
-
-#     def __repr__(self):
-#         return f"x: {self.x}, y: {self.y}"
-
-#     def move(self, direction: Direction, distance: int = 1):
-#         """Modifies self to move in given direction for distance."""
-#         if direction == Direction.UP:
-#             self.y -= distance
-#         if direction == Direction.DOWN:
-#             self.y += distance
-#         if direction == Direction.LEFT:
-#             self.x -= distance
-#         if direction == Direction.RIGHT:
-#             self.x += distance
-#         return self
-
-#     def moved(self, direction: Direction, distance: int):
-#         """Returns a new point at the projected location. Does not modify self."""
-#         if direction == Direction.UP:
-#             return Point(y=(self.y - distance), x=self.x)
-#         if direction == Direction.DOWN:
-#             return Point(y=(self.y + distance), x=self.x)
-#         if direction == Direction.LEFT:
-#             return Point(y=self.y, x=(self.x - distance))
-#         if direction == Direction.RIGHT:
-#             return Point(y=self.y, x=(self.x + distance))
-#         raise ValueError("Invalid direction given, can't project.")
-
-#     def valid(self) -> bool:
-#         if (self.x < 0) or (self.x >= GRID_SIZE):
-#             return False
-#         if (self.y < 0) or (self.y >= GRID_SIZE):
-#             return False
-#         return True
-
-#     def __hash__(self):
-#         return hash((self.y, self.x))
-
-#     def __eq__(self, other):
-#         return (
-#             self.__class__ == other.__class__
-#             and self.x == other.x
-#             and self.y == other.y
-#         )
-
-
 class Ship:
     """Ships of the fleet."""
 
@@ -161,16 +108,7 @@ class Ship:
 
     def sink(self):
         self.ship_sunk = True
-        print(f"You sunk my {self.ship_type}")
-
-    # def deploy(self):
-    #     print(f"Deploying a {self.ship_type} of size {self.ship_size}:")
-    #     orientation = ""
-    #     while not (orientation == "h" or orientation == "v"):
-    #         orientation = input("Horizontal or Vertical ('h' or 'v')? ")
-    #     row = int(input("Row (1 through 10)? "))
-    #     column = int(input("Column (1 through 10)? "))
-    #     return (row, column, self.ship_size)
+        print(f"You sunk my {self.ship_type}!")
 
 
 class Fleet:
@@ -199,10 +137,6 @@ class Fleet:
 
     def refresh_grid(self):
         """Rewrite grid from ships to accomadate recent shots."""
-        # self.grid = [["w" for i in range(GRID_SIZE)] for j in range(GRID_SIZE)]
-        # self.grid = [
-        #     [col if col == "M" else "w" for col in self.grid] for row in self.grid
-        # ]
         for ship in self.ships:
             for coord in ship.ship_coords.keys():
                 self.grid[coord.y][coord.x] = ship.ship_coords[coord]
@@ -212,8 +146,8 @@ class Fleet:
         if any([s.take_fire(coord) for s in self.ships]):
             print("Hit!")
         else:
-            self.grid[coord.y][coord.x] = "M"  # TODO: Row, then column?
-            print("Miss! Grid: ", self.grid)
+            self.grid[coord.y][coord.x] = "M"
+            print("Miss!")
         self.refresh_grid()
 
     def add_ship(self, ship: Ship) -> None:
@@ -231,13 +165,11 @@ class Fleet:
             self.ships.add(ship)
             self.refresh_grid()
             self.print_grid()
-            print("Tentative added to set. Set: ", self.ships)
 
     def remove_tentative_ship(self, ship: Ship) -> None:
         self.ships.remove(ship)
         self.refresh_grid()
         self.print_grid()
-        print(self.ships)
 
     def valid_anchor(self, ship: Ship) -> bool:
         for coord in ship.ship_coords:
@@ -255,7 +187,6 @@ class Fleet:
         start = Point(coords[0].y, coords[0].x)
         cardinals = {Direction.UP, Direction.DOWN, Direction.LEFT, Direction.RIGHT}
         while point_valid(start):
-            print(ship)
             if direction in cardinals:
                 start = point_moved(start, direction)
                 if point_valid(start):
@@ -317,6 +248,5 @@ if __name__ == "__main__":
                 col_guess = col_guess - 1
                 break
 
-        print(row_guess, col_guess)
         computer_fleet.take_fire(Point(y=row_guess, x=col_guess))
         computer_fleet.print_grid()

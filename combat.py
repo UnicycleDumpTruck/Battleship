@@ -1,6 +1,10 @@
 from abc import ABC
 from random import randint
-from fleet import Ship, Fleet, headings, GRID_SIZE, ship_sizes
+from rich.traceback import install
+
+from fleet import Ship, Fleet, headings, GRID_SIZE, ship_sizes, Direction, Point
+
+install(show_locals=True)
 
 
 class Combat(ABC):
@@ -20,26 +24,40 @@ class HVCCombat(Combat):
 
     def input_ships(self):
         for ship_type in ship_sizes.keys():
+            next_direction = Direction.RIGHT
+            ship = Ship(
+                ship_type=ship_type,
+                ship_size=ship_sizes[ship_type],
+                ship_start=Point(0, 0),
+                ship_horiz=True,
+                # ship_temp=True,
+            )
+
             while True:
-                ship = Ship(
-                    ship_type=ship_type,
-                    ship_size=ship_sizes[ship_type],
-                    ship_start=(randint(0, GRID_SIZE), randint(0, GRID_SIZE)),
-                    ship_horiz=True,
-                    ship_temp=True,
-                )
+                # if not self.human_fleet.valid_anchor(ship):
+                ship = self.human_fleet.next_valid_ship(ship, next_direction)
                 if self.human_fleet.valid_anchor(ship):
                     self.human_fleet.add_tentative_ship(ship)
-                    # TODO: add horizontal/vertical flip ability.
-                    qu = "Would you like you your %s here? (y/n)" % ship.ship_type
-                    if input(qu).lower() == "y":
+                    cmds = {
+                        "w": Direction.UP,
+                        "s": Direction.DOWN,
+                        "a": Direction.LEFT,
+                        "d": Direction.RIGHT,
+                        "f": Direction.FLIP,
+                    }
+                    qu = f"Enter to anchor {ship.ship_type} wasd to move: "
+                    chr_in = input(qu).lower()
+                    if chr_in == "":
                         self.human_fleet.remove_tentative_ship(ship)
                         self.human_fleet.add_ship(ship)
                         self.human_fleet.print_grid()
                         break
                     else:
                         self.human_fleet.remove_tentative_ship(ship)
+                        next_direction = cmds.get(chr_in, Direction.NONE)
                         continue
+                # else:
+                #     ship = self.human_fleet.next_valid_ship(ship, next_direction)
 
     def run(self):
         self.computer_fleet.print_grid()

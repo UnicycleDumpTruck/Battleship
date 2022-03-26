@@ -10,7 +10,7 @@ except ImportError:
 from loguru import logger
 
 # Size of coordinate grid upon which game takes place:
-GRID_SIZE = 10
+GRID_SIZE = 9
 
 # Alphabetic row headings:
 headings = [chr(number + ord("a")) for number in range(GRID_SIZE)]
@@ -120,7 +120,7 @@ class Ship:
     def sink(self) -> None:
         """Record self as sunk, notify observers."""
         self.ship_sunk = True
-        print(f"You sunk my {self.ship_type}!")
+        logger.info(f"You sunk my {self.ship_type}!")
 
 
 class Fleet:
@@ -132,6 +132,7 @@ class Fleet:
         self.grid = [["w" for i in range(GRID_SIZE)] for j in range(GRID_SIZE)]
         self.taken_coords = set()
         self.ships = set()
+        self.defeated = False
 
     def print_grid(self):
         """Transfer grid to string then print to console."""
@@ -150,20 +151,68 @@ class Fleet:
         print(self.name)
         print(grid_str)
 
+    def ships_grid(self, show_ships: bool):
+        self.refresh_grid()
+        grid_str = "  "  # Space before top heading row
+        grid_str += " ".join(map(str, range(1, GRID_SIZE + 1)))
+        grid_str += "\n"
+        row_headings = (h for h in headings)
+        for row in self.grid:
+            grid_str += next(row_headings)
+            grid_str += " "
+            for column in row:
+                if show_ships:
+                    grid_str += column + " "
+                else:
+                    if column in {"H", "M", "w"}:
+                        grid_str += column + " "
+                    else:
+                        grid_str += "w "
+            grid_str += "\n"
+        grid_str += "\n"
+        return grid_str
+
+    def guesses_grid(self):
+        self.refresh_grid()
+        grid_str = "  "  # Space before top heading row
+        grid_str += " ".join(map(str, range(1, GRID_SIZE + 1)))
+        grid_str += "\n"
+        row_headings = (h for h in headings)
+        for row in self.grid:
+            grid_str += next(row_headings)
+            grid_str += " "
+            for column in row:
+                if column in {"H", "M", "w"}:
+                    grid_str += column + " "
+                else:
+                    grid_str += "w "
+            grid_str += "\n"
+        grid_str += "\n"
+        return grid_str
+
     def refresh_grid(self):
         """Rewrite grid from ships to accomadate recent shots."""
         for ship in self.ships:
             for coord in ship.ship_coords.keys():
                 self.grid[coord.y][coord.x] = ship.ship_coords[coord]
 
-    def take_fire(self, coord: Point):
+    def take_fire(self, coord: Point) -> Tuple[bool, str, bool]:
         """Pass coord to ships to check for hits, mark ship or grid."""
-        if any([s.take_fire(coord) for s in self.ships]):
-            print("Hit!")
-        else:
-            self.grid[coord.y][coord.x] = "M"
-            print("Miss!")
+        for s in self.ships:
+            if s.take_fire(coord):
+                logger.info("Hit!")
+                if s.ship_sunk:
+                    hit = True
+                    sunk = s.ship_type
+                    if all(ship.ship_sunk for ship in self.ships):
+                        self.defeated = True
+            else:
+                self.grid[coord.y][coord.x] = "M"
+                logger.info("Miss!")
+                hit = False
+                sunk = ""
         self.refresh_grid()
+        return (hit, sunk, self.defeated)
 
     def add_ship(self, ship: Ship) -> None:
         """Add a ship to the Fleet, and mark its coords as taken."""
@@ -181,7 +230,7 @@ class Fleet:
         if self.valid_anchor(ship):
             self.ships.add(ship)
             self.refresh_grid()
-            self.print_grid()
+            # self.print_grid()
 
     def remove_tentative_ship(self, ship: Ship) -> None:
         """Remove temporary ship from fleet, usually to move it elsewhere."""
@@ -189,7 +238,7 @@ class Fleet:
         for coord in ship.ship_coords.keys():
             self.grid[coord.y][coord.x] = "w"
         self.refresh_grid()
-        self.print_grid()
+        # self.print_grid()
 
     def valid_anchor(self, ship: Ship) -> bool:
         """Given a ship, return True if it fits without overlapping others or borders."""
@@ -244,7 +293,9 @@ class Fleet:
                 ship = Ship(
                     ship_type=ship_type,
                     ship_size=ship_sizes[ship_type],
-                    ship_start=Point(randint(0, 11), randint(0, 11)),
+                    ship_start=Point(
+                        randint(0, GRID_SIZE - 1), randint(0, GRID_SIZE - 1)
+                    ),
                     ship_horiz=choice((True, False)),
                 )
                 if self.valid_anchor(ship):

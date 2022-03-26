@@ -1,8 +1,12 @@
 from abc import ABC
 from random import randint, choice
+from curses import wrapper
+from time import sleep
 from rich.traceback import install
+from loguru import logger
 
 from fleet import Ship, Fleet, headings, GRID_SIZE, ship_sizes, Direction, Point
+from views import CursesView, Areas
 
 install(show_locals=True)
 
@@ -17,7 +21,8 @@ class Combat(ABC):
 class HVCCombat(Combat):
     """Human vs computer combat controller."""
 
-    def __init__(self):
+    def __init__(self, view):
+        self.view = view
         self.computer_fleet = Fleet("Computer Fleet")
         self.computer_fleet.deploy_computer_fleet()
         self.human_fleet = Fleet("Human Fleet")
@@ -46,41 +51,66 @@ class HVCCombat(Combat):
                         "d": Direction.RIGHT,
                         "f": Direction.FLIP,
                     }
-                    qu = f"Enter to anchor {ship.ship_type} wasd to move: "
-                    chr_in = input(qu).lower()
-                    if chr_in == "":
+                    self.view.display_grid(self.human_fleet.ships_grid(True), Areas.BS)
+                    self.view.display_text(f"{ship.ship_type} Ewasdf", Areas.BT)
+                    chr_in = self.view.get_direction()
+                    self.view.display_text("", Areas.BS)
+                    # qu = f"Enter to anchor {ship.ship_type} wasd to move: "
+                    # chr_in = input(qu).lower()
+                    if chr_in == "\n":
                         self.human_fleet.remove_tentative_ship(ship)
                         self.human_fleet.add_ship(ship)
-                        self.human_fleet.print_grid()
+                        self.view.display_grid(
+                            self.human_fleet.ships_grid(True), Areas.BS
+                        )
                         break
                     else:
                         self.human_fleet.remove_tentative_ship(ship)
                         next_direction = cmds.get(chr_in, Direction.NONE)
-                        self.human_fleet.print_grid()
+                        self.view.display_grid(
+                            self.human_fleet.ships_grid(True), Areas.BS
+                        )
                         continue
                 # else:
                 #     ship = self.human_fleet.next_valid_ship(ship, next_direction)
 
     def run(self):
-        self.computer_fleet.print_grid()
+        logger.debug("HVCCombat running.")
+        self.view.display_grid(self.computer_fleet.ships_grid(True), Areas.AS)
         self.input_ships()
+        # TODO: Make this into a turn function, check if game won each turn
         while True:
             while True:
-                row_guess = input("Row letter? ").strip().lower()
+                self.view.display_text(f"Firing row? ", Areas.BT)
+                row_guess = self.view.get_direction()
+                self.view.display_text(f"", Areas.BT)
                 if row_guess in headings:
                     row_guess = ord(row_guess) - 97
                     break
 
             while True:
-                col_guess = int(input("Column number? ").strip().lower())
+                self.view.display_text(f"Firing column? ", Areas.BT)
+                col_guess = int(self.view.get_direction())
+                self.view.display_text(f"", Areas.BT)
                 if 0 <= col_guess and col_guess <= GRID_SIZE:
                     col_guess = col_guess - 1
                     break
 
-            self.computer_fleet.take_fire(Point(y=row_guess, x=col_guess))
-            self.computer_fleet.print_grid()
-
-
-if __name__ == "__main__":
-    ctrl = HVCCombat()
-    ctrl.run()
+            results = self.computer_fleet.take_fire(Point(y=row_guess, x=col_guess))
+            if results[2]:
+                feedback = f"You sunk my {results[1]} and WON THE GAME!"
+                break
+            elif results[0] and results[1]:
+                feedback = f"You sunk my {results[1]}!"
+            elif results[0]:
+                feedback = "Hit!"
+            else:
+                feedback = "Miss!"
+            self.view.display_text(feedback, Areas.BT)
+            self.view.display_grid(self.computer_fleet.ships_grid(True), Areas.AS)
+            self.view.display_grid(self.computer_fleet.ships_grid(False), Areas.BG)
+            results = self.human_fleet.take_fire(
+                Point(y=randint(0, GRID_SIZE - 1), x=randint(0, GRID_SIZE - 1))
+            )
+            self.view.display_grid(self.human_fleet.ships_grid(False), Areas.AG)
+            self.view.display_grid(self.human_fleet.ships_grid(True), Areas.BS)

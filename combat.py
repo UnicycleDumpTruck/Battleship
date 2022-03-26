@@ -1,5 +1,5 @@
 from abc import ABC
-from random import randint
+from random import randint, choice
 from rich.traceback import install
 
 from fleet import Ship, Fleet, headings, GRID_SIZE, ship_sizes, Direction, Point
@@ -24,17 +24,18 @@ class HVCCombat(Combat):
 
     def input_ships(self):
         for ship_type in ship_sizes.keys():
-            next_direction = Direction.RIGHT
+            next_direction = Direction.NONE
             ship = Ship(
                 ship_type=ship_type,
                 ship_size=ship_sizes[ship_type],
-                ship_start=Point(0, 0),
-                ship_horiz=True,
+                ship_start=Point(x=0, y=0),
+                ship_horiz=choice((True, False)),
                 # ship_temp=True,
             )
 
             while True:
-                # if not self.human_fleet.valid_anchor(ship):
+                if not self.human_fleet.valid_anchor(ship):
+                    next_direction = choice(list(Direction))
                 ship = self.human_fleet.next_valid_ship(ship, next_direction)
                 if self.human_fleet.valid_anchor(ship):
                     self.human_fleet.add_tentative_ship(ship)
@@ -55,6 +56,7 @@ class HVCCombat(Combat):
                     else:
                         self.human_fleet.remove_tentative_ship(ship)
                         next_direction = cmds.get(chr_in, Direction.NONE)
+                        self.human_fleet.print_grid()
                         continue
                 # else:
                 #     ship = self.human_fleet.next_valid_ship(ship, next_direction)

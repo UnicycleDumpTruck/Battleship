@@ -1,6 +1,5 @@
 from enum import Enum
 from random import randint, choice
-
 from collections import namedtuple
 
 try:
@@ -10,15 +9,20 @@ except ImportError:
 
 from loguru import logger
 
+# Size of coordinate grid upon which game takes place:
 GRID_SIZE = 10
+
+# Alphabetic row headings:
 headings = [chr(number + ord("a")) for number in range(GRID_SIZE)]
 
 
+# Orientation of ship on grid
 class Orientation(Enum):
     HORIZONTAL = 1
     VERTICAL = 2
 
 
+# Commands for flipping, not moving, or direction to move points & ships
 class Direction(Enum):
     UP = 1
     DOWN = 2
@@ -28,7 +32,7 @@ class Direction(Enum):
     NONE = 6
 
 
-# Ship type: (length)
+# Names and lengths of ships
 ship_sizes = {
     "Patrol Boat": 2,
     "Submarine": 3,
@@ -38,12 +42,12 @@ ship_sizes = {
 }
 
 
-# Used to represent coordinates of guess shot and char of hit/miss.
+# Used to represent x,y coordinates
 Point = namedtuple("Point", ["x", "y"])
 
 
 def point_moved(point: Point, direction: Direction, distance: int = 1):
-    """Returns a new point at the projected location. Does not modify self."""
+    """Returns a new point at the projected location. Does not modify original."""
     if direction == Direction.UP:
         return Point(y=(point.y - distance), x=point.x)
     if direction == Direction.DOWN:
@@ -56,15 +60,16 @@ def point_moved(point: Point, direction: Direction, distance: int = 1):
 
 
 def point_valid(point: Point):
-    if (point.x < 0) or (point.x >= GRID_SIZE):
+    """Returns True if point is within grid bounds."""
+    if (point.x < 0) or (GRID_SIZE <= point.x):
         return False
-    if (point.y < 0) or (point.y >= GRID_SIZE):
+    if (point.y < 0) or (GRID_SIZE <= point.y):
         return False
     return True
 
 
 class Ship:
-    """Ships of the fleet."""
+    """Ship of the fleet."""
 
     def __init__(
         self,
@@ -74,6 +79,8 @@ class Ship:
         ship_horiz: bool,
         ship_temp: bool = False,
     ):
+        """Initialize the Ship."""
+        self.ship_start = ship_start
         self.ship_type = ship_type
         self.ship_size = ship_size
         self.ship_horiz = ship_horiz
@@ -91,28 +98,36 @@ class Ship:
                     point_moved(ship_start, Direction.RIGHT, i)
                 ] = self.char()
 
-    def char(self):
+    def char(self) -> str:
+        """Return the character representing ship type or temp ship."""
         if self.ship_temp:
             return "*"
         return self.ship_type[0]
 
-    def __repr__(self):
+    def __repr__(self) -> str:
+        """Return string representation of Ship object."""
         return f"{self.ship_type}, on {self.ship_coords.items()}"
 
-    def take_fire(self, coord: Point):
+    def take_fire(self, coord: Point) -> bool:
+        """Given a point, mark self and return True if hits."""
         if self.ship_coords.get(coord):
             self.ship_coords[coord] = "H"  # Hit!
             if not any([ch != "H" for ch in self.ship_coords.values()]):
                 self.sink()
             return True
+        return False
 
-    def sink(self):
+    def sink(self) -> None:
+        """Record self as sunk, notify observers."""
         self.ship_sunk = True
         print(f"You sunk my {self.ship_type}!")
 
 
 class Fleet:
+    """Fleet of Ships and grid of hits and misses."""
+
     def __init__(self, name):
+        """Initialize Fleet."""
         self.name = name
         self.grid = [["w" for i in range(GRID_SIZE)] for j in range(GRID_SIZE)]
         self.taken_coords = set()
@@ -151,6 +166,7 @@ class Fleet:
         self.refresh_grid()
 
     def add_ship(self, ship: Ship) -> None:
+        """Add a ship to the Fleet, and mark its coords as taken."""
         if self.valid_anchor(ship):
             ship.ship_temp = False
             self.ships.add(ship)
@@ -161,17 +177,22 @@ class Fleet:
             raise ValueError("Can't add ship there, it overlaps other ships.")
 
     def add_tentative_ship(self, ship: Ship) -> None:
+        """Add a ship to the Fleet, but DON'T mark the coordinates as taken."""
         if self.valid_anchor(ship):
             self.ships.add(ship)
             self.refresh_grid()
             self.print_grid()
 
     def remove_tentative_ship(self, ship: Ship) -> None:
+        """Remove temporary ship from fleet, usually to move it elsewhere."""
         self.ships.remove(ship)
+        for coord in ship.ship_coords.keys():
+            self.grid[coord.y][coord.x] = "w"
         self.refresh_grid()
         self.print_grid()
 
     def valid_anchor(self, ship: Ship) -> bool:
+        """Given a ship, return True if it fits without overlapping others or borders."""
         for coord in ship.ship_coords:
             if (coord.y, coord.x) in self.taken_coords:
                 # Overlaps other ship
@@ -184,7 +205,7 @@ class Fleet:
     def next_valid_ship(self, ship: Ship, direction: Direction) -> Ship:
         """Given a ship and a direction to move, return next valid ship, or same."""
         coords = list(ship.ship_coords.keys())
-        start = Point(coords[0].y, coords[0].x)
+        start = ship.ship_start  # Point(coords[0].y, coords[0].x)
         cardinals = {Direction.UP, Direction.DOWN, Direction.LEFT, Direction.RIGHT}
         while point_valid(start):
             if direction in cardinals:
@@ -195,7 +216,7 @@ class Fleet:
                         ship.ship_size,
                         start,
                         ship.ship_horiz,
-                        # ship.ship_temp,
+                        ship.ship_temp,
                     )
                     if self.valid_anchor(test):
                         return test
@@ -205,7 +226,7 @@ class Fleet:
                     ship.ship_size,
                     start,
                     not ship.ship_horiz,
-                    # ship.ship_temp,
+                    ship.ship_temp,
                 )
                 if self.valid_anchor(test):
                     return test
@@ -217,6 +238,7 @@ class Fleet:
         return ship
 
     def deploy_computer_fleet(self):
+        """Generate randomly placed Fleet for the computer side."""
         for ship_type in ship_sizes.keys():
             while True:
                 ship = Ship(

@@ -5,7 +5,8 @@ from time import sleep
 from rich.traceback import install
 from loguru import logger
 
-from fleet import Ship, Fleet, headings, GRID_SIZE, ship_sizes, Direction, Point
+# from fleet import Ship, Fleet, headings, GRID_SIZE, ship_sizes, Direction, Point
+import fleet
 from views import CursesView, Areas
 
 install(show_locals=True)
@@ -23,36 +24,42 @@ class HVCCombat(Combat):
 
     def __init__(self, view):
         self.view = view
-        self.computer_fleet = Fleet("Computer Fleet")
+        self.computer_fleet = fleet.Fleet("Computer Fleet")
         self.computer_fleet.deploy_computer_fleet()
-        self.human_fleet = Fleet("Human Fleet")
+        self.view.display_grid(self.computer_fleet.ships_grid(False), Areas.BG)
+        self.view.display_grid(self.computer_fleet.ships_grid(True), Areas.AS)
+        self.human_fleet = fleet.Fleet("Human Fleet")
+        self.view.display_grid(self.human_fleet.ships_grid(False), Areas.AG)
 
     def input_human_ships(self):
-        for ship_type in ship_sizes.keys():
-            next_direction = Direction.NONE
-            ship = Ship(
+        for ship_type in fleet.ship_sizes.keys():
+            next_direction = fleet.Direction.NONE
+            ship = fleet.Ship(
                 ship_type=ship_type,
-                ship_size=ship_sizes[ship_type],
-                ship_start=Point(x=0, y=0),
+                ship_size=fleet.ship_sizes[ship_type],
+                ship_start=fleet.Point(x=0, y=0),
                 ship_horiz=choice((True, False)),
                 # ship_temp=True,
             )
 
             while True:
                 if not self.human_fleet.valid_anchor(ship):
-                    next_direction = choice(list(Direction))
+                    next_direction = choice(list(fleet.Direction))
                 ship = self.human_fleet.next_valid_ship(ship, next_direction)
                 if self.human_fleet.valid_anchor(ship):
                     self.human_fleet.add_tentative_ship(ship)
                     cmds = {
-                        "w": Direction.UP,
-                        "s": Direction.DOWN,
-                        "a": Direction.LEFT,
-                        "d": Direction.RIGHT,
-                        "f": Direction.FLIP,
+                        "w": fleet.Direction.UP,
+                        "s": fleet.Direction.DOWN,
+                        "a": fleet.Direction.LEFT,
+                        "d": fleet.Direction.RIGHT,
+                        "f": fleet.Direction.FLIP,
                     }
                     self.view.display_grid(self.human_fleet.ships_grid(True), Areas.BS)
-                    self.view.display_text(f"{ship.ship_type} Ewasdf", Areas.BT)
+                    self.view.display_text(
+                        f"New {ship.ship_type}:\n wasd to move,\n f to flip \n enter to anchor",
+                        Areas.BT,
+                    )
                     chr_in = self.view.get_direction()
                     self.view.display_text("", Areas.BS)
                     # qu = f"Enter to anchor {ship.ship_type} wasd to move: "
@@ -66,7 +73,7 @@ class HVCCombat(Combat):
                         break
                     else:
                         self.human_fleet.remove_tentative_ship(ship)
-                        next_direction = cmds.get(chr_in, Direction.NONE)
+                        next_direction = cmds.get(chr_in, fleet.Direction.NONE)
                         self.view.display_grid(
                             self.human_fleet.ships_grid(True), Areas.BS
                         )
@@ -76,7 +83,9 @@ class HVCCombat(Combat):
 
     def computer_a_turn(self):
         game_over = False
-        coords = Point(y=randint(0, GRID_SIZE - 1), x=randint(0, GRID_SIZE - 1))
+        coords = fleet.Point(
+            y=randint(0, fleet.GRID_SIZE - 1), x=randint(0, fleet.GRID_SIZE - 1)
+        )
         results = self.human_fleet.take_fire(coords)
         if results[2]:
             feedback = f"You sunk my {results[1]} and WON THE GAME!"
@@ -112,8 +121,8 @@ class HVCCombat(Combat):
         return game_over
 
     def run(self):
-        logger.debug("HVCCombat running.")
         self.view.display_grid(self.computer_fleet.ships_grid(True), Areas.AS)
+        self.view.display_grid(self.computer_fleet.ships_grid(False), Areas.BG)
         self.input_human_ships()
         while True:
             if self.player_b_turn():

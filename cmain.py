@@ -1,4 +1,4 @@
-from views import CursesView
+from views import CursesView, RichView
 from combat import HVCCombat
 from curses import wrapper
 

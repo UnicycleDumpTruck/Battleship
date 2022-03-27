@@ -41,6 +41,7 @@ ship_sizes = {
     "Aircraft Carrier": 5,
 }
 
+ship_capitals = set(boat[0] for boat in ship_sizes.keys())
 
 # Used to represent x,y coordinates
 Point = namedtuple("Point", ["x", "y"])

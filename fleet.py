@@ -197,20 +197,21 @@ class Fleet:
                 self.grid[coord.y][coord.x] = ship.ship_coords[coord]
 
     def take_fire(self, coord: Point) -> Tuple[bool, str, bool]:
-        """Pass coord to ships to check for hits, mark ship or grid."""
+        """Pass coord to ships to check for hits, mark ship and/or grid."""
+        hit = False
+        sunk = ""
         for s in self.ships:
             if s.take_fire(coord):
+                hit = True
                 logger.info("Hit!")
                 if s.ship_sunk:
-                    hit = True
                     sunk = s.ship_type
                     if all(ship.ship_sunk for ship in self.ships):
                         self.defeated = True
-            else:
-                self.grid[coord.y][coord.x] = "M"
-                logger.info("Miss!")
-                hit = False
-                sunk = ""
+                return (hit, sunk, self.defeated)
+
+        self.grid[coord.y][coord.x] = "M"
+        logger.info("Miss!")
         self.refresh_grid()
         return (hit, sunk, self.defeated)
 

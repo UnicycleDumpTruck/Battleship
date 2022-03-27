@@ -27,7 +27,7 @@ class HVCCombat(Combat):
         self.computer_fleet.deploy_computer_fleet()
         self.human_fleet = Fleet("Human Fleet")
 
-    def input_ships(self):
+    def input_human_ships(self):
         for ship_type in ship_sizes.keys():
             next_direction = Direction.NONE
             ship = Ship(
@@ -74,43 +74,51 @@ class HVCCombat(Combat):
                 # else:
                 #     ship = self.human_fleet.next_valid_ship(ship, next_direction)
 
+    def computer_a_turn(self):
+        game_over = False
+        coords = Point(y=randint(0, GRID_SIZE - 1), x=randint(0, GRID_SIZE - 1))
+        results = self.human_fleet.take_fire(coords)
+        if results[2]:
+            feedback = f"You sunk my {results[1]} and WON THE GAME!"
+            game_over = True
+        elif results[0] and results[1]:
+            feedback = f"You sunk my {results[1]}!"
+        elif results[0]:
+            feedback = "Hit!"
+        else:
+            feedback = "Miss!"
+        self.view.display_text(feedback, Areas.AF)
+        self.view.display_grid(self.human_fleet.ships_grid(False), Areas.AG)
+        self.view.display_grid(self.human_fleet.ships_grid(True), Areas.BS)
+        return game_over
+
+    def player_b_turn(self):
+        game_over = False
+        coords = self.view.get_fire_coords()
+        results = self.computer_fleet.take_fire(coords)
+        if results[2]:
+            feedback = f"You sunk my {results[1]} and WON THE GAME!"
+            game_over = True
+        elif results[0] and results[1]:
+            feedback = f"You sunk my {results[1]}!"
+        elif results[0]:
+            feedback = "Hit!"
+        else:
+            feedback = "Miss!"
+        self.view.display_text(feedback, Areas.BF)
+        # self.view.display_text(feedback, Areas.BT)
+        self.view.display_grid(self.computer_fleet.ships_grid(False), Areas.BG)
+        self.view.display_grid(self.computer_fleet.ships_grid(True), Areas.AS)
+        return game_over
+
     def run(self):
         logger.debug("HVCCombat running.")
         self.view.display_grid(self.computer_fleet.ships_grid(True), Areas.AS)
-        self.input_ships()
-        # TODO: Make this into a turn function, check if game won each turn
+        self.input_human_ships()
         while True:
-            while True:
-                self.view.display_text(f"Firing row? ", Areas.BT)
-                row_guess = self.view.get_direction()
-                self.view.display_text(f"", Areas.BT)
-                if row_guess in headings:
-                    row_guess = ord(row_guess) - 97
-                    break
-
-            while True:
-                self.view.display_text(f"Firing column? ", Areas.BT)
-                col_guess = int(self.view.get_direction())
-                self.view.display_text(f"", Areas.BT)
-                if 0 <= col_guess and col_guess <= GRID_SIZE:
-                    col_guess = col_guess - 1
-                    break
-
-            results = self.computer_fleet.take_fire(Point(y=row_guess, x=col_guess))
-            if results[2]:
-                feedback = f"You sunk my {results[1]} and WON THE GAME!"
-                break
-            elif results[0] and results[1]:
-                feedback = f"You sunk my {results[1]}!"
-            elif results[0]:
-                feedback = "Hit!"
-            else:
-                feedback = "Miss!"
-            self.view.display_text(feedback, Areas.BT)
-            self.view.display_grid(self.computer_fleet.ships_grid(True), Areas.AS)
-            self.view.display_grid(self.computer_fleet.ships_grid(False), Areas.BG)
-            results = self.human_fleet.take_fire(
-                Point(y=randint(0, GRID_SIZE - 1), x=randint(0, GRID_SIZE - 1))
-            )
-            self.view.display_grid(self.human_fleet.ships_grid(False), Areas.AG)
-            self.view.display_grid(self.human_fleet.ships_grid(True), Areas.BS)
+            if self.player_b_turn():
+                # Player a won!
+                pass
+            if self.computer_a_turn():
+                # Player b won!
+                pass

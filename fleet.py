@@ -135,64 +135,34 @@ class Fleet:
         self.ships = set()
         self.defeated = False
 
-    def print_grid(self):
-        """Transfer grid to string then print to console."""
-        self.refresh_grid()
-        grid_str = "  "  # Space before top heading row
-        grid_str += " ".join(map(str, range(1, GRID_SIZE + 1)))
-        grid_str += "\n"
-        row_headings = (h for h in headings)
-        for row in self.grid:
-            grid_str += next(row_headings)
-            grid_str += " "
-            for column in row:
-                grid_str += column + " "
-            grid_str += "\n"
-        grid_str += "\n"
-        print(self.name)
-        print(grid_str)
+    def at_point(self, coords: Point) -> str:
+        """Return character at given Point on grid. Used to check for duplicate shot."""
+        return self.grid[coords.y][coords.x]
 
     def ships_grid(self, show_ships: bool):
+        """Return string representation of grid, with or without ships."""
         self.refresh_grid()
-        grid_str = "  "  # Space before top heading row
-        grid_str += " ".join(map(str, range(1, GRID_SIZE + 1)))
+        grid_str = " "  # Space before top heading row
+        grid_str += "".join(map(str, range(1, GRID_SIZE + 1)))
         grid_str += "\n"
         row_headings = (h for h in headings)
         for row in self.grid:
             grid_str += next(row_headings)
-            grid_str += " "
+            grid_str += ""
             for column in row:
                 if show_ships:
-                    grid_str += column + " "
+                    grid_str += column + ""
                 else:
                     if column in {"H", "M", "w"}:
-                        grid_str += column + " "
+                        grid_str += column + ""
                     else:
-                        grid_str += "w "
-            grid_str += "\n"
-        grid_str += "\n"
-        return grid_str
-
-    def guesses_grid(self):
-        self.refresh_grid()
-        grid_str = "  "  # Space before top heading row
-        grid_str += " ".join(map(str, range(1, GRID_SIZE + 1)))
-        grid_str += "\n"
-        row_headings = (h for h in headings)
-        for row in self.grid:
-            grid_str += next(row_headings)
-            grid_str += " "
-            for column in row:
-                if column in {"H", "M", "w"}:
-                    grid_str += column + " "
-                else:
-                    grid_str += "w "
+                        grid_str += "w"
             grid_str += "\n"
         grid_str += "\n"
         return grid_str
 
     def refresh_grid(self):
-        """Rewrite grid from ships to accomadate recent shots."""
+        """Rewrite coords from ships to accomadate recent hits."""
         for ship in self.ships:
             for coord in ship.ship_coords.keys():
                 self.grid[coord.y][coord.x] = ship.ship_coords[coord]
@@ -240,7 +210,6 @@ class Fleet:
         for coord in ship.ship_coords.keys():
             self.grid[coord.y][coord.x] = "w"
         self.refresh_grid()
-        # self.print_grid()
 
     def valid_anchor(self, ship: Ship) -> bool:
         """Given a ship, return True if it fits without overlapping others or borders."""
@@ -255,8 +224,7 @@ class Fleet:
 
     def next_valid_ship(self, ship: Ship, direction: Direction) -> Ship:
         """Given a ship and a direction to move, return next valid ship, or same."""
-        coords = list(ship.ship_coords.keys())
-        start = ship.ship_start  # Point(coords[0].y, coords[0].x)
+        start = ship.ship_start
         cardinals = {Direction.UP, Direction.DOWN, Direction.LEFT, Direction.RIGHT}
         while point_valid(start):
             if direction in cardinals:
@@ -303,25 +271,3 @@ class Fleet:
                 if self.valid_anchor(ship):
                     self.add_ship(ship)
                     break
-
-
-if __name__ == "__main__":
-    computer_fleet = Fleet("Computer Fleet")
-    computer_fleet.deploy_computer_fleet()
-    computer_fleet.print_grid()
-
-    while True:
-        while True:
-            row_guess = input("Row letter? ").strip().lower()
-            if row_guess in headings:
-                row_guess = ord(row_guess) - 97
-                break
-
-        while True:
-            col_guess = int(input("Column number? ").strip().lower())
-            if 0 <= col_guess and col_guess <= GRID_SIZE:
-                col_guess = col_guess - 1
-                break
-
-        computer_fleet.take_fire(Point(y=row_guess, x=col_guess))
-        computer_fleet.print_grid()

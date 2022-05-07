@@ -141,24 +141,24 @@ class RichView:
     def get_fire_coords(self, flt: fleet.Fleet) -> fleet.Point:
         while True:
             while True:
-                self.display_text(f"Firing row? ", Areas.BT)
+                self.display_text("Firing row? ", Areas.BT)
                 row_guess = self.get_direction()
-                self.display_text(f"", Areas.BT)
+                self.display_text("", Areas.BT)
                 if row_guess in fleet.headings:
                     row_guess = ord(row_guess) - 97
                     break
 
             while True:
-                self.display_text(f"Firing column? ", Areas.BT)
+                self.display_text("Firing column? ", Areas.BT)
                 col_guess = self.get_direction()
                 if col_guess.isdigit():
                     col_guess_num = int(col_guess)
                     self.display_text(f"", Areas.BT)
-                    if 0 <= col_guess_num and col_guess_num <= fleet.GRID_SIZE:
-                        col_guess_num = col_guess_num - 1
+                    if 0 <= col_guess_num <= fleet.GRID_SIZE:
+                        col_guess_num -= 1
                         break
 
             coords = fleet.Point(y=row_guess, x=col_guess_num)
-            if not flt.at_point(coords) in {"H", "M"}:
+            if flt.at_point(coords) not in {"H", "M"}:
                 break
         return coords

@@ -15,12 +15,22 @@ from rich.layout import Layout
 from rich.console import Console
 from rich.theme import Theme
 from rich.align import Align
+from rich.traceback import install
+
+install(show_locals=True)
+
 
 theme_dict = {
     "w": "dim cyan",
     "M": "bold bright_white",
     "H": "bold bright_red",
     "G": "bold blue",
+    "X": "red",
+    "a": "red",
+    "b": "red",
+    "d": "red",
+    "p": "red",
+    "s": "red",
     "headings": "green",
 }
 custom_theme = Theme(theme_dict)
@@ -92,7 +102,7 @@ class RichView:
         self.clear_and_print()
 
     def clear_and_print(self):
-        os.system("clear")
+        # os.system("clear")
         console.print(self.full_layout)
 
     def update_area(self, area, text):

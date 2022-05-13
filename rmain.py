@@ -1,6 +1,9 @@
 from blessed import Terminal
 from views import RichView
 from combat import HVCCombat
+from rich.traceback import install
+
+install(show_locals=True)
 
 term = Terminal()
 

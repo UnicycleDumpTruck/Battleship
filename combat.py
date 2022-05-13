@@ -76,9 +76,10 @@ class HVCCombat:
 
     def computer_a_turn(self):
         game_over = False
-        coords = fleet.Point(
-            y=randint(0, fleet.GRID_SIZE - 1), x=randint(0, fleet.GRID_SIZE - 1)
-        )
+        if wounded := self.human_fleet.possible_hits():
+            coords = wounded[0]
+        else:
+            coords = self.human_fleet.random_unshot_point()
         results = self.human_fleet.take_fire(coords)
         if results[2]:
             feedback = f"You sunk my {results[1]} and WON THE GAME!"

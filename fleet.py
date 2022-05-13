@@ -1,13 +1,15 @@
 from enum import Enum
 from random import randint, choice
+from itertools import chain
 from collections import namedtuple
+import contextlib
 
-try:
-    from typing import Tuple, Optional, NamedTuple
-except ImportError:
-    pass
-
+with contextlib.suppress(ImportError):
+    from typing import Tuple, Optional, NamedTuple, List, Union
+from rich.traceback import install
 from loguru import logger
+
+install(show_locals=True)
 
 # Size of coordinate grid upon which game takes place:
 GRID_SIZE = 9
@@ -16,7 +18,7 @@ GRID_SIZE = 9
 headings = [chr(number + ord("a")) for number in range(GRID_SIZE)]
 
 
-# Orientation of ship on grid
+# Orientation state of ship on grid
 class Orientation(Enum):
     HORIZONTAL = 1
     VERTICAL = 2
@@ -42,6 +44,9 @@ ship_sizes = {
 }
 
 ship_capitals = set(boat[0] for boat in ship_sizes.keys())
+
+hit_chars = {"H", "M", None}
+hit_chars.update(c.lower() for c in ship_capitals)
 
 # Used to represent x,y coordinates
 Point = namedtuple("Point", ["x", "y"])
@@ -69,6 +74,28 @@ def point_valid(point: Point):
     return True
 
 
+def point_above(point: Point) -> Optional[Point]:
+    return None if point.y < 1 else Point(point.x, point.y - 1)
+
+
+def point_left(point: Point) -> Optional[Point]:
+    return None if point.x < 1 else Point(point.x - 1, point.y)
+
+
+def point_right(point: Point) -> Optional[Point]:
+    return None if point.x > GRID_SIZE - 2 else Point(point.x + 1, point.y)
+
+
+def point_below(point: Point) -> Optional[Point]:
+    return None if point.y > GRID_SIZE - 2 else Point(point.x, point.y + 1)
+
+
+def surrounding_points(point: Point) -> List:
+    funcs = [point_above, point_left, point_right, point_below]
+    surrounding = [f(point) for f in funcs]
+    return list(filter(None, surrounding))
+
+
 class Ship:
     """Ship of the fleet."""
 
@@ -87,7 +114,7 @@ class Ship:
         self.ship_horiz = ship_horiz
         self.ship_temp = ship_temp
         self.ship_sunk = False
-        self.ship_coords = dict()
+        self.ship_coords = {}
         if ship_horiz:
             for i in range(ship_size):
                 self.ship_coords[
@@ -101,9 +128,7 @@ class Ship:
 
     def char(self) -> str:
         """Return the character representing ship type or temp ship."""
-        if self.ship_temp:
-            return "*"
-        return self.ship_type[0]
+        return "*" if self.ship_temp else self.ship_type[0]
 
     def __repr__(self) -> str:
         """Return string representation of Ship object."""
@@ -113,14 +138,16 @@ class Ship:
         """Given a point, mark self and return True if hits."""
         if self.ship_coords.get(coord):
             self.ship_coords[coord] = "H"  # Hit!
-            if not any([ch != "H" for ch in self.ship_coords.values()]):
+            if all(ch == "H" for ch in self.ship_coords.values()):
                 self.sink()
             return True
         return False
 
     def sink(self) -> None:
-        """Record self as sunk, notify observers."""
+        """Record self as sunk."""
         self.ship_sunk = True
+        for key in self.ship_coords.keys():
+            self.ship_coords[key] = self.char().lower()
         logger.info(f"You sunk my {self.ship_type}!")
 
 
@@ -130,14 +157,86 @@ class Fleet:
     def __init__(self, name):
         """Initialize Fleet."""
         self.name = name
-        self.grid = [["w" for i in range(GRID_SIZE)] for j in range(GRID_SIZE)]
+        self.grid = [["w" for _ in range(GRID_SIZE)] for _ in range(GRID_SIZE)]
         self.taken_coords = set()
         self.ships = set()
+        self.wounded_ships = set()
         self.defeated = False
+        self.point_list = [
+            Point(x, y) for x in range(GRID_SIZE) for y in range(GRID_SIZE)
+        ]
 
-    def at_point(self, coords: Point) -> str:
+    def random_unshot_point(self):
+        while True:
+            p = Point(y=randint(0, GRID_SIZE - 1), x=randint(0, GRID_SIZE - 1))
+            logger.debug(p)
+            if self.at_point(p) not in hit_chars:
+                return p
+
+    def at_point(self, coords: Optional[Point]) -> str:
         """Return character at given Point on grid. Used to check for duplicate shot."""
-        return self.grid[coords.y][coords.x]
+        if coords is None:
+            logger.debug("at_point passed none")
+        return self.grid[coords.y][coords.x] if coords else None
+
+    def unsunk_hits(self) -> List[Point]:
+        """Return list of points marked as hit, but not sunk."""
+        listy = self.point_list
+        return [p for p in self.point_list if self.at_point(p) == "H"]
+
+    def lone_point(self, coords: Point) -> bool:
+        """Returns true if point has no hits or misses around it."""
+        return all(
+            self.at_point(p) not in hit_chars for p in surrounding_points(coords)
+        )
+
+    def possible_hits_for_point(self, point: Point) -> List[Optional[Point]]:
+        points = []
+        logger.debug(f"Surrounding points of H: {surrounding_points(point)}")
+        logger.debug(
+            f"Surrounding chars of H: {[self.at_point(p) for p in surrounding_points(point)]}"
+        )
+        if self.lone_point(point):
+            points.extend(surrounding_points(point))
+        logger.debug(points)
+        if self.at_point(point_above(point)) not in hit_chars and self.hit_below(point):
+            points.append(point_above(point))
+        if self.at_point(point_below(point)) not in hit_chars and self.hit_above(point):
+            points.append(point_below(point))
+        if self.at_point(point_left(point)) not in hit_chars and self.hit_right(point):
+            points.append(point_left(point))
+        if self.at_point(point_right(point)) not in hit_chars and self.hit_left(point):
+            points.append(point_right(point))
+        logger.debug(points)
+        points.extend(
+            [p for p in surrounding_points(point) if self.at_point(p) not in hit_chars]
+        )
+        logger.debug(points)
+        return points
+
+    def possible_hits(self):
+        logger.debug(self.unsunk_hits())
+        return list(
+            chain.from_iterable(
+                self.possible_hits_for_point(p) for p in self.unsunk_hits()
+            )
+        )
+
+    def hit_above(self, point: Point) -> bool:
+        """Returns true if there is a hit above."""
+        return self.at_point(point_above(point)) == "H"
+
+    def hit_below(self, point: Point) -> bool:
+        """Returns true if there is a hit below."""
+        return self.at_point(point_below(point)) == "H"
+
+    def hit_left(self, point: Point) -> bool:
+        """Returns true if there is a hit left."""
+        return self.at_point(point_left(point)) == "H"
+
+    def hit_right(self, point: Point) -> bool:
+        """Returns true if there is a hit right."""
+        return self.at_point(point_right(point)) == "H"
 
     def ships_grid(self, show_ships: bool):
         """Return string representation of grid, with or without ships."""
@@ -145,7 +244,7 @@ class Fleet:
         grid_str = " "  # Space before top heading row
         grid_str += "".join(map(str, range(1, GRID_SIZE + 1)))
         grid_str += "\n"
-        row_headings = (h for h in headings)
+        row_headings = iter(headings)
         for row in self.grid:
             grid_str += next(row_headings)
             grid_str += ""
@@ -153,7 +252,7 @@ class Fleet:
                 if show_ships:
                     grid_str += column + ""
                 else:
-                    if column in {"H", "M", "w"}:
+                    if column in {"a", "s", "p", "d", "b", "X", "H", "M", "w"}:
                         grid_str += column + ""
                     else:
                         grid_str += "w"
@@ -173,9 +272,13 @@ class Fleet:
         sunk = ""
         for s in self.ships:
             if s.take_fire(coord):
+                self.wounded_ships.add(s)
+                logger.debug(self.wounded_ships)
                 hit = True
                 logger.info("Hit!")
                 if s.ship_sunk:
+                    self.wounded_ships.remove(s)
+                    logger.debug(self.wounded_ships)
                     sunk = s.ship_type
                     if all(ship.ship_sunk for ship in self.ships):
                         self.defeated = True

@@ -3,7 +3,8 @@ from random import randint, choice
 from time import sleep
 from rich.traceback import install
 from loguru import logger
-
+from playsound import playsound
+import threading
 import fleet
 import views
 
@@ -74,6 +75,38 @@ class HVCCombat:
                 # else:
                 #     ship = self.human_fleet.next_valid_ship(ship, next_direction)
 
+    def hit_sound(self, side):
+        hit_sound_thread = threading.Thread(
+            target=playsound, args=(f"audio/explosion_{side}.wav",)
+        )
+        hit_sound_thread.start()
+
+    def miss_sound(self, side):
+        miss_sound_thread = threading.Thread(
+            target=playsound, args=(f"audio/splash_{side}.wav",)
+        )
+        miss_sound_thread.start()
+
+    def win_sound(self, side):
+        sunk_sound_thread = threading.Thread(target=playsound, args=("audio/sunk.wav",))
+        sunk_sound_thread.start()
+        # sunk_sound_thread.join()
+        win_sound_thread = threading.Thread(
+            target=playsound, args=(f"audio/win_{side}.wav",)
+        )
+        win_sound_thread.start()
+
+    def sunk_sound(self, side):
+        hit_sound_thread = threading.Thread(
+            target=playsound, args=(f"audio/explosion_{side}.wav",)
+        )
+        hit_sound_thread.start()
+        # hit_sound_thread.join()
+        sunk_sound_thread = threading.Thread(
+            target=playsound, args=(f"audio/sunk_{side}.wav",)
+        )
+        sunk_sound_thread.start()
+
     def computer_a_turn(self):
         game_over = False
         if wounded := self.human_fleet.possible_hits():
@@ -82,13 +115,17 @@ class HVCCombat:
             coords = self.human_fleet.random_unshot_point()
         results = self.human_fleet.take_fire(coords)
         if results[2]:
+            self.win_sound("l")
             feedback = f"You sunk my {results[1]} and WON THE GAME!"
             game_over = True
         elif results[0] and results[1]:
+            self.sunk_sound("l")
             feedback = f"You sunk my {results[1]}!"
         elif results[0]:
+            self.hit_sound("l")
             feedback = f"Hit at {fleet.headings[coords.y].upper()}-{coords.x + 1}!"
         else:
+            self.miss_sound("l")
             feedback = f"Miss at {fleet.headings[coords.y].upper()}-{coords.x + 1}!"
         self.view.display_text(feedback, views.Areas.AF)
         self.view.display_grid(self.human_fleet.ships_grid(False), views.Areas.AG)
@@ -100,13 +137,17 @@ class HVCCombat:
         coords = self.view.get_fire_coords(self.computer_fleet)
         results = self.computer_fleet.take_fire(coords)
         if results[2]:
+            self.win_sound("r")
             feedback = f"You sunk my {results[1]} and WON THE GAME!"
             game_over = True
         elif results[0] and results[1]:
+            self.sunk_sound("r")
             feedback = f"You sunk my {results[1]}!"
         elif results[0]:
+            self.hit_sound("r")
             feedback = f"Hit at {fleet.headings[coords.y].upper()}-{coords.x + 1}!"
         else:
+            self.miss_sound("r")
             feedback = f"Miss at {fleet.headings[coords.y].upper()}-{coords.x + 1}!"
         self.view.display_text(feedback, views.Areas.BF)
         self.view.display_grid(self.computer_fleet.ships_grid(False), views.Areas.BG)

@@ -149,6 +149,8 @@ class RichView:
     #     self.clear_and_print()
 
     def get_fire_coords(self, flt: fleet.Fleet) -> fleet.Point:
+        # TODO: don't allow firing on previously fired-on points
+        # TODO: Sound?
         while True:
             while True:
                 self.display_text("Firing row? ", Areas.BT)

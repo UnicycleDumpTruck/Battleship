@@ -102,7 +102,7 @@ class RichView:
         self.clear_and_print()
 
     def clear_and_print(self):
-        # os.system("clear")
+        os.system("clear")
         console.print(self.full_layout)
 
     def update_area(self, area, text):
@@ -174,3 +174,30 @@ class RichView:
             if flt.at_point(coords) not in {"H", "M"}:
                 break
         return coords
+
+    def show_game_over(self, winner):
+        game_over_title = Align(
+            align="center",
+            style="red bold",
+            renderable=""" ██████╗  █████╗ ███╗   ███╗███████╗     ██████╗ ██╗   ██╗███████╗██████╗ 
+██╔════╝ ██╔══██╗████╗ ████║██╔════╝    ██╔═══██╗██║   ██║██╔════╝██╔══██╗
+██║  ███╗███████║██╔████╔██║█████╗      ██║   ██║██║   ██║█████╗  ██████╔╝
+██║   ██║██╔══██║██║╚██╔╝██║██╔══╝      ██║   ██║╚██╗ ██╔╝██╔══╝  ██╔══██╗
+╚██████╔╝██║  ██║██║ ╚═╝ ██║███████╗    ╚██████╔╝ ╚████╔╝ ███████╗██║  ██║
+ ╚═════╝ ╚═╝  ╚═╝╚═╝     ╚═╝╚══════╝     ╚═════╝   ╚═══╝  ╚══════╝╚═╝  ╚═╝
+                                                                          """,
+        )
+        winner_text = Align(
+            align="center", style="red bold", renderable=f"{winner} has won the game!"
+        )
+        self.game_over_layout = Layout()
+        self.game_over_layout.split_column(
+            Layout(name="upper_third"),
+            Layout(name="middle_third"),
+            Layout(name="lower_third"),
+        )
+        self.game_over_layout["upper_third"].update("")
+        self.game_over_layout["middle_third"].update(game_over_title)
+        self.game_over_layout["lower_third"].update(winner_text)
+        os.system("clear")
+        console.print(self.game_over_layout)

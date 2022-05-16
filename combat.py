@@ -88,9 +88,15 @@ class HVCCombat:
         miss_sound_thread.start()
 
     def win_sound(self, side):
-        sunk_sound_thread = threading.Thread(target=playsound, args=("audio/sunk.wav",))
+        hit_sound_thread = threading.Thread(
+            target=playsound, args=(f"audio/explosion_{side}.wav",)
+        )
+        hit_sound_thread.start()
+        sunk_sound_thread = threading.Thread(
+            target=playsound, args=(f"audio/sunk_{side}.wav",)
+        )
         sunk_sound_thread.start()
-        # sunk_sound_thread.join()
+        sunk_sound_thread.join()
         win_sound_thread = threading.Thread(
             target=playsound, args=(f"audio/win_{side}.wav",)
         )
@@ -161,7 +167,9 @@ class HVCCombat:
         while True:
             if self.player_b_turn():
                 # Player a won!
-                pass
+                self.view.show_game_over("Human")
+                break
             if self.computer_a_turn():
                 # Player b won!
-                pass
+                self.view.show_game_over("Computer")
+                break

@@ -148,7 +148,7 @@ class Ship:
         self.ship_sunk = True
         for key in self.ship_coords.keys():
             self.ship_coords[key] = self.char().lower()
-        logger.info(f"You sunk my {self.ship_type}!")
+        # logger.info(f"You sunk my {self.ship_type}!")
 
 
 class Fleet:
@@ -169,14 +169,14 @@ class Fleet:
     def random_unshot_point(self):
         while True:
             p = Point(y=randint(0, GRID_SIZE - 1), x=randint(0, GRID_SIZE - 1))
-            logger.debug(p)
+            # logger.debug(p)
             if self.at_point(p) not in hit_chars:
                 return p
 
     def at_point(self, coords: Optional[Point]) -> str:
         """Return character at given Point on grid. Used to check for duplicate shot."""
-        if coords is None:
-            logger.debug("at_point passed none")
+        # if coords is None:
+        # logger.debug("at_point passed none")
         return self.grid[coords.y][coords.x] if coords else None
 
     def unsunk_hits(self) -> List[Point]:
@@ -192,13 +192,13 @@ class Fleet:
 
     def possible_hits_for_point(self, point: Point) -> List[Optional[Point]]:
         points = []
-        logger.debug(f"Surrounding points of H: {surrounding_points(point)}")
-        logger.debug(
-            f"Surrounding chars of H: {[self.at_point(p) for p in surrounding_points(point)]}"
-        )
+        # logger.debug(f"Surrounding points of H: {surrounding_points(point)}")
+        # logger.debug(
+        #     f"Surrounding chars of H: {[self.at_point(p) for p in surrounding_points(point)]}"
+        # )
         if self.lone_point(point):
             points.extend(surrounding_points(point))
-        logger.debug(points)
+        # logger.debug(points)
         if self.at_point(point_above(point)) not in hit_chars and self.hit_below(point):
             points.append(point_above(point))
         if self.at_point(point_below(point)) not in hit_chars and self.hit_above(point):
@@ -207,15 +207,15 @@ class Fleet:
             points.append(point_left(point))
         if self.at_point(point_right(point)) not in hit_chars and self.hit_left(point):
             points.append(point_right(point))
-        logger.debug(points)
+        # logger.debug(points)
         points.extend(
             [p for p in surrounding_points(point) if self.at_point(p) not in hit_chars]
         )
-        logger.debug(points)
+        # logger.debug(points)
         return points
 
     def possible_hits(self):
-        logger.debug(self.unsunk_hits())
+        # logger.debug(self.unsunk_hits())
         return list(
             chain.from_iterable(
                 self.possible_hits_for_point(p) for p in self.unsunk_hits()
@@ -273,19 +273,19 @@ class Fleet:
         for s in self.ships:
             if s.take_fire(coord):
                 self.wounded_ships.add(s)
-                logger.debug(self.wounded_ships)
+                # logger.debug(self.wounded_ships)
                 hit = True
-                logger.info("Hit!")
+                # logger.info("Hit!")
                 if s.ship_sunk:
                     self.wounded_ships.remove(s)
-                    logger.debug(self.wounded_ships)
+                    # logger.debug(self.wounded_ships)
                     sunk = s.ship_type
                     if all(ship.ship_sunk for ship in self.ships):
                         self.defeated = True
                 return (hit, sunk, self.defeated)
 
         self.grid[coord.y][coord.x] = "M"
-        logger.info("Miss!")
+        # logger.info("Miss!")
         self.refresh_grid()
         return (hit, sunk, self.defeated)
 

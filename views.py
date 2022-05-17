@@ -68,7 +68,8 @@ class RichView:
             Layout(name="player_a"),
             Layout(name="player_b"),
         )
-
+        # Hide computer's grids and feedback
+        self.full_layout["lower_row"]["player_a"].visible = False
         self.full_layout["lower_row"]["player_a"].split_column(
             Layout(name="guesses_row", size=13),
             Layout(name="ships_row", size=13),
@@ -144,13 +145,8 @@ class RichView:
         self.areas[ar].update(text)
         self.clear_and_print()
 
-    # def display_feeback(self, text: str, ar: Areas):
-    #     self.areas[ar].update(text)
-    #     self.clear_and_print()
-
     def get_fire_coords(self, flt: fleet.Fleet) -> fleet.Point:
         # TODO: don't allow firing on previously fired-on points
-        # TODO: Sound?
         while True:
             while True:
                 self.display_text("Firing row? ", Areas.BT)

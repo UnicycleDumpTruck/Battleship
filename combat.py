@@ -96,7 +96,7 @@ class HVCCombat:
             target=playsound, args=(f"audio/sunk_{side}.wav",)
         )
         sunk_sound_thread.start()
-        sunk_sound_thread.join()
+        # sunk_sound_thread.join()
         win_sound_thread = threading.Thread(
             target=playsound, args=(f"audio/win_{side}.wav",)
         )

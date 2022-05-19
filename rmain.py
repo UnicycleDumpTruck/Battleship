@@ -10,7 +10,7 @@ term = Terminal()
 
 def main():
     view = RichView(term)
-    ctrl = HVCCombat(view)
+    ctrl = HVCCombat(view, True)
     ctrl.run()
 
 

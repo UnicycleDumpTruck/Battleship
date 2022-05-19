@@ -103,7 +103,7 @@ class RichView:
         self.clear_and_print()
 
     def clear_and_print(self):
-        os.system("clear")
+        # os.system("clear")
         console.print(self.full_layout)
 
     def update_area(self, area, text):

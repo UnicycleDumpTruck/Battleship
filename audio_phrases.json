@@ -1,0 +1,7 @@
+{
+"h_won" : "The game is over. The human has won.",
+"c_won" : "The game is over. The computer has won.",
+"enter" : "Please enter target coordinates.",
+"c_firing" : "Computer firing at",
+"h_firing" : "Human firing at"
+}

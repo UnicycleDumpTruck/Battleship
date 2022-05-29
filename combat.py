@@ -155,10 +155,11 @@ class HVCCombat:
             game_over = True
         elif results[0] and results[1]:
             self.sunk_sound("l")
+
             feedback = f"A: You sunk my {results[1]}!"
             self.play_b(f"audio/your_{results[1]}_sunk.mp3")
         elif results[0]:
-            self.hit_sound("l")
+            self.play_b("audio/explosion_l.wav")
             feedback = f"Hit at {fleet.headings[coords.y].upper()}-{coords.x + 1}!"
         else:
             self.miss_sound("l")

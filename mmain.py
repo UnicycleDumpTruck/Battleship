@@ -10,7 +10,7 @@ term = Terminal()
 
 def main():
     view = MatrixView(term)
-    ctrl = HVCCombat(view, True)
+    ctrl = HVCCombat(view, False)
     ctrl.run()
 
 

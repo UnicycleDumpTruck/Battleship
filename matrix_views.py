@@ -14,7 +14,9 @@ from rich.traceback import install
 install(show_locals=True)
 
 i2c = board.I2C()
-matrix = Matrix8x8x2(i2c)
+
+guess_matrix = Matrix8x8x2(i2c, 0x70)
+fleet_matrix = Matrix8x8x2(i2c, 0x71)
 
 # Available LED colors
 # matrix.LED_OFF
@@ -37,17 +39,15 @@ matrix = Matrix8x8x2(i2c)
 
 
 theme_dict = {
-    "w": matrix.LED_OFF,
-    "M": matrix.LED_YELLOW,
-    "H": matrix.LED_RED,
-    "G": matrix.LED_GREEN,
-    "X": matrix.LED_GREEN,
+    "w": guess_matrix.LED_OFF,
+    "M": guess_matrix.LED_YELLOW,
+    "H": guess_matrix.LED_RED,
+    "G": guess_matrix.LED_GREEN,
+    "X": guess_matrix.LED_GREEN,
 }
 for cap in fleet.ship_capitals:
-    theme_dict[cap] = matrix.LED_RED
-    theme_dict[cap.lower()] = matrix.LED_RED
-for head in fleet.headings:
-    theme_dict[head] = "green"
+    theme_dict[cap] = guess_matrix.LED_RED
+    theme_dict[cap.lower()] = guess_matrix.LED_RED
 
 
 class Areas(Enum):
@@ -61,6 +61,11 @@ class Areas(Enum):
     BT = auto()  # Player b text
     BF = auto()  # Player b feedback
 
+class Matrices(Enum):
+    AG = auto() # Player A guesses
+    AS = auto() # Player A ships
+    BG = auto() # Player B guesses
+    BS = auto() # Player B ships
 
 class MatrixView:
     def __init__(self, term: Terminal):
@@ -97,11 +102,15 @@ class MatrixView:
         return val
 
     def display_grid(self, grid: List[fleet.Square], show_ships: bool, area: Areas):
-        styled_grid = ""
+        # styled_grid = ""
+        if area == self.areas[Areas.BG]:
+            matrix = guess_matrix
+        else:
+            matrix = fleet_matrix
         for row_num, row in enumerate(grid):
             for col_num, square in enumerate(row):
                 label = square.get_label()
-                matrix[col_num][row_num] = theme_dict[label]
+                matrix[col_num, row_num] = theme_dict[label]
         #         if not show_ships:
         #             if label in fleet.ship_capitals:
         #                 label = "w"
@@ -117,7 +126,7 @@ class MatrixView:
         # self.clear_and_print()
         
     def display_text(self, text: str, ar: Areas):
-        self.areas[ar].update(text)
+        logger.info(text)
         #self.clear_and_print()
 
     def highlight_target(self, flt: fleet.Fleet, point: fleet.Point, area: Areas):

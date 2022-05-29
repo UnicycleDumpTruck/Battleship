@@ -89,10 +89,7 @@ class HVCCombat:
         )
 
     def miss_sound(self, side):
-        miss_sound_thread = threading.Thread(
-            target=playsound, args=(f"audio/splash_{side}.wav",)
-        )
-        miss_sound_thread.start()
+        self.play_nb(f"audio/splash_{side}.wav")
 
     def win_sound(self, side):
         hit_sound_thread = threading.Thread(

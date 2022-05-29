@@ -12,7 +12,7 @@ from loguru import logger
 install(show_locals=True)
 
 # Size of coordinate grid upon which game takes place:
-GRID_SIZE = 9
+GRID_SIZE = 7
 
 # Alphabetic row headings:
 headings = [chr(number + ord("a")) for number in range(GRID_SIZE)]
@@ -38,9 +38,9 @@ class Direction(Enum):
 ship_sizes = {
     "Patrol Boat": 2,
     "Submarine": 3,
-    "Destroyer": 3,
+    #"Destroyer": 3,
     "Battleship": 4,
-    "Aircraft Carrier": 5,
+    #"Aircraft Carrier": 5,
 }
 
 ship_capitals = set(boat[0] for boat in ship_sizes.keys())
@@ -148,40 +148,151 @@ class Ship:
         self.ship_sunk = True
         for key in self.ship_coords.keys():
             self.ship_coords[key] = self.char().lower()
-        # logger.info(f"You sunk my {self.ship_type}!")
+
+
+class Square():
+    def __init__(self, x: int, y: int, label: str, highlit: str = ''):
+        """Initialize Square."""
+        self.x = x
+        self.y = y
+        self._label = label
+        self.highlit = highlit
+
+    def get_label(self):
+        """Return label for grid square, such as 'w' for water, 'p' for patrol boat."""
+        return self._label
+
+    def set_label(self, label: str):
+        """Set label for grid square, such as 'w' for water, 'p' for patrol boat."""
+        self._label = label
+
+    def get_highlight(self):
+        return self.highlit
+
+    def set_highlight(self, highlight_type: str):
+        """Store type of highlight, perhaps primary or secondary."""
+        self.highlit = highlight_type
+
+    def remove_highlight(self):
+        """Remove highlighting."""
+        self.highlit = ''
+
+    def __eq__(self, other):
+        """Return equality, checking only x and y."""
+        return self.x == other.x and self.y == other.y and type(other) == type(self)
+
+    def __hash__(self) -> int:
+        """Return hash of only x and y."""
+        return hash(self._x, self._y)
+
+    def __repr__(self) -> str:
+        return self._label
+
+
+class Grid:
+    """Grid of Squares containing characters and highlight status."""
+    def __init__(self, side_length):
+        self._grid = [[Square(x, y, "w") for x in range(side_length)] for y in range(side_length)]
+
+    def get_char_at(self, coords: Optional[Point]) -> str:
+        """Return water or letter of ship (sunk or not) at coords."""
+        return self._grid[coords.y][coords.x].get_label() if coords else None
+
+    def set_label_at(self, coords: Point, label: str):
+        self._grid[coords.y][coords.x].set_label(label)
+
+    def list_of_squares_as_points(self):
+        """Return a list of Points representing each grid square."""
+        return [
+            Point(x, y) for x in range(GRID_SIZE) for y in range(GRID_SIZE)
+        ]
+
+    def highlight_point(self, point: Point, highlight_type: str):
+        self._grid[point.y][point.x].set_highlight(highlight_type)
+
+    def highlight_row(self, row: int, highlight_type: str):
+        """Set the highlight type for all Squares in a given row."""
+        for square in self._grid[row]:
+            square.set_highlight(highlight_type)
+
+    def highlight_col(self, col: int, highlight_type: str):
+        """Set the highlight type for all Squares in a given column."""
+        for row in self._grid:
+            row[col].set_highlight(highlight_type)
+
+    def remove_all_highlights(self):
+        for row in self._grid:
+            for square in row:
+                square.remove_highlight()
+
+    def ships_grid(self, show_ships: bool, headers:bool):
+        return self._grid
+
+    def grid_as_string(self, show_ships: bool, headers: bool):
+        """Return string representation of grid, with or without ships."""
+        grid_str = ""
+        if headers:
+            row_headings = iter(headings)
+            grid_str += " "  # Space before top heading row
+            grid_str += "".join(map(str, range(1, GRID_SIZE + 1)))
+            grid_str += "\n"
+        for row in self._grid:
+            if headers:
+                grid_str += next(row_headings)
+                grid_str += ""
+            for column in row:
+                if show_ships:
+                    grid_str += column.get_label() + ""
+                else:
+                    if column.get_label() in {"a", "s", "p", "d", "b", "X", "H", "M", "w"}:
+                        grid_str += column.get_label() + ""
+                    else:
+                        grid_str += "w"
+            grid_str += "\n"
+        grid_str += "\n"
+        return grid_str
+
 
 
 class Fleet:
-    """Fleet of Ships and grid of hits and misses."""
+    """Fleet of Ships and Grid of hits and misses."""
 
     def __init__(self, name):
         """Initialize Fleet."""
         self.name = name
-        self.grid = [["w" for _ in range(GRID_SIZE)] for _ in range(GRID_SIZE)]
+        self.grid = Grid(GRID_SIZE)
         self.taken_coords = set()
         self.ships = set()
         self.wounded_ships = set()
         self.defeated = False
-        self.point_list = [
-            Point(x, y) for x in range(GRID_SIZE) for y in range(GRID_SIZE)
-        ]
+        self.point_list = self.grid.list_of_squares_as_points()
+
+    def highlight_point(self, point: Point, highlight_type: str):
+        self.grid.highlight_point(point, highlight_type)
+
+    def highlight_row(self, row: int, highlight_type: str):
+        self.grid.highlight_row(row, highlight_type)
+
+    def highlight_col(self, col: int, highlight_type: str):
+        self.grid.highlight_col(col, highlight_type)
+
+    def remove_all_highlights(self):
+        self.grid.remove_all_highlights()
 
     def random_unshot_point(self):
         while True:
             p = Point(y=randint(0, GRID_SIZE - 1), x=randint(0, GRID_SIZE - 1))
-            # logger.debug(p)
             if self.at_point(p) not in hit_chars:
                 return p
 
     def at_point(self, coords: Optional[Point]) -> str:
         """Return character at given Point on grid. Used to check for duplicate shot."""
-        # if coords is None:
-        # logger.debug("at_point passed none")
-        return self.grid[coords.y][coords.x] if coords else None
+        return self.grid.get_char_at(coords) if coords else None
+
 
     def unsunk_hits(self) -> List[Point]:
         """Return list of points marked as hit, but not sunk."""
-        listy = self.point_list
+        # listy = self.point_list
         return [p for p in self.point_list if self.at_point(p) == "H"]
 
     def lone_point(self, coords: Point) -> bool:
@@ -238,33 +349,15 @@ class Fleet:
         """Returns true if there is a hit right."""
         return self.at_point(point_right(point)) == "H"
 
-    def ships_grid(self, show_ships: bool):
-        """Return string representation of grid, with or without ships."""
+    def ships_grid(self, show_ships: bool, headers: bool = False):
         self.refresh_grid()
-        grid_str = " "  # Space before top heading row
-        grid_str += "".join(map(str, range(1, GRID_SIZE + 1)))
-        grid_str += "\n"
-        row_headings = iter(headings)
-        for row in self.grid:
-            grid_str += next(row_headings)
-            grid_str += ""
-            for column in row:
-                if show_ships:
-                    grid_str += column + ""
-                else:
-                    if column in {"a", "s", "p", "d", "b", "X", "H", "M", "w"}:
-                        grid_str += column + ""
-                    else:
-                        grid_str += "w"
-            grid_str += "\n"
-        grid_str += "\n"
-        return grid_str
+        return self.grid.ships_grid(show_ships=show_ships, headers=False)
 
     def refresh_grid(self):
         """Rewrite coords from ships to accomadate recent hits."""
         for ship in self.ships:
             for coord in ship.ship_coords.keys():
-                self.grid[coord.y][coord.x] = ship.ship_coords[coord]
+                self.grid.set_label_at(coord, label=ship.ship_coords[coord]),
 
     def take_fire(self, coord: Point) -> Tuple[bool, str, bool]:
         """Pass coord to ships to check for hits, mark ship and/or grid."""
@@ -284,7 +377,7 @@ class Fleet:
                         self.defeated = True
                 return (hit, sunk, self.defeated)
 
-        self.grid[coord.y][coord.x] = "M"
+        self.grid.set_label_at(coord, "M")
         # logger.info("Miss!")
         self.refresh_grid()
         return (hit, sunk, self.defeated)
@@ -305,13 +398,12 @@ class Fleet:
         if self.valid_anchor(ship):
             self.ships.add(ship)
             self.refresh_grid()
-            # self.print_grid()
 
     def remove_tentative_ship(self, ship: Ship) -> None:
         """Remove temporary ship from fleet, usually to move it elsewhere."""
         self.ships.remove(ship)
         for coord in ship.ship_coords.keys():
-            self.grid[coord.y][coord.x] = "w"
+            self.grid.set_label_at(coord, "w")
         self.refresh_grid()
 
     def valid_anchor(self, ship: Ship) -> bool:

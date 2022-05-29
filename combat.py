@@ -83,40 +83,6 @@ class HVCCombat:
     #     )
     #     hit_sound_thread.start()
 
-    def hit_sound(self, side):
-        self.play_b(
-            f"audio/explosion_{side}.wav",
-        )
-
-    def miss_sound(self, side):
-        self.play_nb(f"audio/splash_{side}.wav")
-
-    def win_sound(self, side):
-        hit_sound_thread = threading.Thread(
-            target=playsound, args=(f"audio/explosion_{side}.wav",)
-        )
-        hit_sound_thread.start()
-        sunk_sound_thread = threading.Thread(
-            target=playsound, args=(f"audio/sunk_{side}.wav",)
-        )
-        sunk_sound_thread.start()
-        # sunk_sound_thread.join()
-        win_sound_thread = threading.Thread(
-            target=playsound, args=(f"audio/win_{side}.wav",)
-        )
-        win_sound_thread.start()
-
-    def sunk_sound(self, side):
-        hit_sound_thread = threading.Thread(
-            target=playsound, args=(f"audio/explosion_{side}.wav",)
-        )
-        hit_sound_thread.start()
-        # hit_sound_thread.join()
-        sunk_sound_thread = threading.Thread(
-            target=playsound, args=(f"audio/sunk_{side}.wav",)
-        )
-        sunk_sound_thread.start()
-
     def play_b(self, *args):
         """Play audio in threads, but block and join."""
         if self.audio_on:
@@ -128,6 +94,18 @@ class HVCCombat:
         if self.audio_on:
             executor = concurrent.futures.ThreadPoolExecutor(max_workers=1)
             executor.map(playsound, args)
+
+    def hit_sound(self, side):
+        self.play_b(f"audio/explosion_{side}.wav")
+
+    def miss_sound(self, side):
+        self.play_nb(f"audio/splash_{side}.wav")
+
+    def win_sound(self, side):
+        self.play_b(f"audio/win_{side}.wav")
+
+    def sunk_sound(self, side):
+        self.play_b(f"audio/sunk_{side}.wav")
 
     def computer_a_turn(self):
         sleep(0.5)
@@ -152,10 +130,11 @@ class HVCCombat:
             game_over = True
         elif results[0] and results[1]:
             self.sunk_sound("l")
+
             feedback = f"A: You sunk my {results[1]}!"
             self.play_b(f"audio/your_{results[1]}_sunk.mp3")
         elif results[0]:
-            self.hit_sound("l")
+            self.play_b("audio/explosion_l.wav")
             feedback = f"Hit at {fleet.headings[coords.y].upper()}-{coords.x + 1}!"
         else:
             self.miss_sound("l")

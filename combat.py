@@ -43,17 +43,17 @@ class HVCCombat:
                 if self.human_fleet.valid_anchor(ship):
                     self.human_fleet.add_tentative_ship(ship)
                     cmds = {
-                        "w": fleet.Direction.UP,
-                        "s": fleet.Direction.DOWN,
-                        "a": fleet.Direction.LEFT,
-                        "d": fleet.Direction.RIGHT,
-                        "f": fleet.Direction.FLIP,
+                        "KEY_UP": fleet.Direction.UP,
+                        "KEY_DOWN": fleet.Direction.DOWN,
+                        "KEY_LEFT": fleet.Direction.LEFT,
+                        "KEY_RIGHT": fleet.Direction.RIGHT,
+                        "KEY_TAB": fleet.Direction.FLIP,
                     }
                     self.view.display_grid(
                         self.human_fleet.ships_grid(True), True, views.Areas.BS
                     )
                     self.view.display_text(
-                        f"New {ship.ship_type}:\n wasd to move,\n f to flip \n enter to anchor",
+                        f"New {ship.ship_type}:\nArrows to move,\nTab to flip \nEnter to anchor",
                         views.Areas.BT,
                     )
                     chr_in = self.view.get_direction()
@@ -69,7 +69,7 @@ class HVCCombat:
                         break
                     else:
                         self.human_fleet.remove_tentative_ship(ship)
-                        next_direction = cmds.get(chr_in, fleet.Direction.NONE)
+                        next_direction = cmds.get(chr_in.name, fleet.Direction.NONE)
                         self.view.display_grid(
                             self.human_fleet.ships_grid(True), True, views.Areas.BS
                         )

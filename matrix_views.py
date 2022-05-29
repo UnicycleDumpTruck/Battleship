@@ -61,11 +61,13 @@ class Areas(Enum):
     BT = auto()  # Player b text
     BF = auto()  # Player b feedback
 
+
 class Matrices(Enum):
-    AG = auto() # Player A guesses
-    AS = auto() # Player A ships
-    BG = auto() # Player B guesses
-    BS = auto() # Player B ships
+    AG = auto()  # Player A guesses
+    AS = auto()  # Player A ships
+    BG = auto()  # Player B guesses
+    BS = auto()  # Player B ships
+
 
 class MatrixView:
     def __init__(self, term: Terminal):
@@ -128,52 +130,73 @@ class MatrixView:
 
         # self.areas[area].update(styled_grid)
         # self.clear_and_print()
-        
+
     def display_text(self, text: str, ar: Areas):
         logger.info(text)
-        #self.clear_and_print()
+        # self.clear_and_print()
 
     def highlight_target(self, flt: fleet.Fleet, point: fleet.Point, area: Areas):
         flt.remove_all_highlights()
         flt.highlight_row(point.y, "yellow")
         flt.highlight_col(point.x, "yellow")
         flt.highlight_point(point, "red reverse blink")
-        self.display_grid(flt.grid.ships_grid(False, False), show_ships=False, area=area)
-
+        self.display_grid(
+            flt.grid.ships_grid(False, False), show_ships=False, area=area
+        )
 
     def get_fire_coords(self, flt: fleet.Fleet) -> fleet.Point:
         # TODO: don't allow firing on previously fired-on points
         target_x = 3
         target_y = 3
         # self.display_text("Arrows to choose, Enter to fire.", Areas.BT)
-        self.highlight_target(flt=flt, point=fleet.Point(y=target_y, x=target_x), area=Areas.BG)
+        self.highlight_target(
+            flt=flt, point=fleet.Point(y=target_y, x=target_x), area=Areas.BG
+        )
         while True:
             key = self.get_direction()
             if key.name == "KEY_ENTER":
-                    coords = fleet.Point(y=target_y, x=target_x)
-                    break
+                coords = fleet.Point(y=target_y, x=target_x)
+                break
             elif key.name == "KEY_UP":
                 if target_y > 0:
                     target_y -= 1
-                    self.highlight_target(flt=flt, point=fleet.Point(y=target_y, x=target_x), area=Areas.BG)
+                    self.highlight_target(
+                        flt=flt,
+                        point=fleet.Point(y=target_y, x=target_x),
+                        area=Areas.BG,
+                    )
             elif key.name == "KEY_DOWN":
                 if target_y < fleet.GRID_SIZE - 1:
                     target_y += 1
-                    self.highlight_target(flt=flt, point=fleet.Point(y=target_y, x=target_x), area=Areas.BG)
+                    self.highlight_target(
+                        flt=flt,
+                        point=fleet.Point(y=target_y, x=target_x),
+                        area=Areas.BG,
+                    )
             elif key.name == "KEY_LEFT":
                 if target_x > 0:
                     target_x -= 1
-                    self.highlight_target(flt=flt, point=fleet.Point(y=target_y, x=target_x), area=Areas.BG)
+                    self.highlight_target(
+                        flt=flt,
+                        point=fleet.Point(y=target_y, x=target_x),
+                        area=Areas.BG,
+                    )
             elif key.name == "KEY_RIGHT":
                 if target_x < fleet.GRID_SIZE - 1:
                     target_x += 1
-                    self.highlight_target(flt=flt, point=fleet.Point(y=target_y, x=target_x), area=Areas.BG)
+                    self.highlight_target(
+                        flt=flt,
+                        point=fleet.Point(y=target_y, x=target_x),
+                        area=Areas.BG,
+                    )
             else:
                 continue
 
         # self.display_text("", Areas.BT)
         flt.remove_all_highlights()
-        self.display_grid(flt.grid.ships_grid(False, False), show_ships=False, area=Areas.BG)
+        self.display_grid(
+            flt.grid.ships_grid(False, False), show_ships=False, area=Areas.BG
+        )
         return coords
 
     def show_game_over(self, winner):

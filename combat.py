@@ -19,10 +19,10 @@ class HVCCombat:
         self.view = view
         self.computer_fleet = fleet.Fleet("Computer Fleet")
         self.computer_fleet.deploy_computer_fleet()
-        self.view.display_grid(self.computer_fleet.ships_grid(False), views.Areas.BG)
-        self.view.display_grid(self.computer_fleet.ships_grid(True), views.Areas.AS)
+        self.view.display_grid(self.computer_fleet.ships_grid(False), False, views.Areas.BG)
+        self.view.display_grid(self.computer_fleet.ships_grid(True), True, views.Areas.AS)
         self.human_fleet = fleet.Fleet("Human Fleet")
-        self.view.display_grid(self.human_fleet.ships_grid(False), views.Areas.AG)
+        self.view.display_grid(self.human_fleet.ships_grid(False), False, views.Areas.AG)
         self.audio_on = audio_on
 
     def input_human_ships(self):
@@ -50,7 +50,7 @@ class HVCCombat:
                         "f": fleet.Direction.FLIP,
                     }
                     self.view.display_grid(
-                        self.human_fleet.ships_grid(True), views.Areas.BS
+                        self.human_fleet.ships_grid(True), True, views.Areas.BS
                     )
                     self.view.display_text(
                         f"New {ship.ship_type}:\n wasd to move,\n f to flip \n enter to anchor",
@@ -64,14 +64,14 @@ class HVCCombat:
                         self.human_fleet.remove_tentative_ship(ship)
                         self.human_fleet.add_ship(ship)
                         self.view.display_grid(
-                            self.human_fleet.ships_grid(True), views.Areas.BS
+                            self.human_fleet.ships_grid(True), True, views.Areas.BS
                         )
                         break
                     else:
                         self.human_fleet.remove_tentative_ship(ship)
                         next_direction = cmds.get(chr_in, fleet.Direction.NONE)
                         self.view.display_grid(
-                            self.human_fleet.ships_grid(True), views.Areas.BS
+                            self.human_fleet.ships_grid(True), True, views.Areas.BS
                         )
                         continue
                 # else:
@@ -146,8 +146,8 @@ class HVCCombat:
         #     f"audio/{coords.x+1}.mp3",
         # )
         results = self.human_fleet.take_fire(coords)
-        self.view.display_grid(self.human_fleet.ships_grid(False), views.Areas.AG)
-        self.view.display_grid(self.human_fleet.ships_grid(True), views.Areas.BS)
+        self.view.display_grid(self.human_fleet.ships_grid(False), False, views.Areas.AG)
+        self.view.display_grid(self.human_fleet.ships_grid(True), True, views.Areas.BS)
 
         if results[2]:
             self.win_sound("l")
@@ -179,8 +179,8 @@ class HVCCombat:
         #     f"audio/{coords.x+1}.mp3",
         # )
         results = self.computer_fleet.take_fire(coords)
-        self.view.display_grid(self.computer_fleet.ships_grid(False), views.Areas.BG)
-        self.view.display_grid(self.computer_fleet.ships_grid(True), views.Areas.AS)
+        self.view.display_grid(self.computer_fleet.ships_grid(False), False, views.Areas.BG)
+        self.view.display_grid(self.computer_fleet.ships_grid(True), True, views.Areas.AS)
 
         if results[2]:
             self.win_sound("r")
@@ -203,8 +203,8 @@ class HVCCombat:
         return game_over
 
     def run(self):
-        self.view.display_grid(self.computer_fleet.ships_grid(True), views.Areas.AS)
-        self.view.display_grid(self.computer_fleet.ships_grid(False), views.Areas.BG)
+        self.view.display_grid(self.computer_fleet.ships_grid(True), True, views.Areas.AS)
+        self.view.display_grid(self.computer_fleet.ships_grid(False), False, views.Areas.BG)
         self.input_human_ships()
         while True:
             if self.player_b_turn():

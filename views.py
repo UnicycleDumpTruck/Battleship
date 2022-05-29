@@ -26,17 +26,12 @@ theme_dict = {
     "H": "bold bright_red",
     "G": "bold blue",
     "X": "red",
-    "a": "red",
-    "b": "red",
-    "d": "red",
-    "p": "red",
-    "s": "red",
-    "headings": "green",
     " ": "none",
     "\n": "none",
 }
 for cap in fleet.ship_capitals:
     theme_dict[cap] = "bold blue"
+    theme_dict[cap.lower()] = "red"
 for head in fleet.headings:
     theme_dict[head] = "green"
 
@@ -126,79 +121,82 @@ class RichView:
 
     def get_direction(self) -> str:
         with self.term.cbreak():
-            val = self.term.getch()  # faster refresh than term.inkey
+            # val = self.term.getch()  # faster refresh than term.inkey
+            val = self.term.inkey()
         return val
 
-    def display_grid(self, grid: List[fleet.Square], ar: Areas):
+    def display_grid(self, grid: List[fleet.Square], show_ships: bool, area: Areas):
         styled_grid = Text()
         for row in grid:
             for square in row:
                 label = square.get_label()
+                if not show_ships:
+                    if label in fleet.ship_capitals:
+                        label = "w"
                 highlight = square.get_highlight()
-                styled_grid.append(label, style=theme_dict[label])
+                theme = theme_dict.get(label, '')
+                style = f"{theme}{' on ' if highlight else ''}{highlight}"
+                styled_grid.append(label, style=style)
                 if label != "\n":
                     styled_grid.append(" ", None)
             styled_grid.append("\n", None)
 
-        self.areas[ar].update(styled_grid)
+        self.areas[area].update(styled_grid)
         self.clear_and_print()
         
-
-    def not_display_grid(self, grid: str, ar: Areas):
-        # self.scrn.addstr(grid)
-        # self.scrn.refresh()
-        styled_grid = Text()
-        for char in grid:
-            if char in fleet.ship_capitals:
-                styled_grid.append(char, style=theme_dict["G"])
-            elif char in fleet.headings:
-                styled_grid.append(char, style=theme_dict["headings"])
-            elif char.isdigit():
-                styled_grid.append(char, style=theme_dict["headings"])
-            elif char in {" ", "\n"}:
-                styled_grid.append(char, None)
-            else:
-                styled_grid.append(char, style=theme_dict[char])
-            if char != "\n":
-                styled_grid.append(" ", None)
-        self.areas[ar].update(styled_grid)
-        self.clear_and_print()
-
     def display_text(self, text: str, ar: Areas):
         self.areas[ar].update(text)
         self.clear_and_print()
 
+    def highlight_target(self, flt: fleet.Fleet, point: fleet.Point, area: Areas):
+        flt.remove_all_highlights()
+        flt.highlight_row(point.y, "yellow")
+        flt.highlight_col(point.x, "yellow")
+        flt.highlight_point(point, "red reverse blink")
+        self.display_grid(flt.grid.ships_grid(False, False), show_ships=False, area=area)
+
+
     def get_fire_coords(self, flt: fleet.Fleet) -> fleet.Point:
         # TODO: don't allow firing on previously fired-on points
+        target_x = 3
+        target_y = 3
+        self.display_text("Arrows to choose, Enter to fire.", Areas.BT)
+        self.highlight_target(flt=flt, point=fleet.Point(y=target_y, x=target_x), area=Areas.BG)
         while True:
-            while True:
-                self.display_text("Firing row? ", Areas.BT)
-                row_guess = self.get_direction()
-                self.display_text("", Areas.BT)
-                if row_guess in fleet.headings:
-                    row_guess = ord(row_guess) - 97
+            key = self.get_direction()
+            if key.name == "KEY_ENTER":
+                    coords = fleet.Point(y=target_y, x=target_x)
                     break
+            elif key.name == "KEY_UP":
+                if target_y > 0:
+                    target_y -= 1
+                    self.highlight_target(flt=flt, point=fleet.Point(y=target_y, x=target_x), area=Areas.BG)
+            elif key.name == "KEY_DOWN":
+                if target_y < fleet.GRID_SIZE - 1:
+                    target_y += 1
+                    self.highlight_target(flt=flt, point=fleet.Point(y=target_y, x=target_x), area=Areas.BG)
+            elif key.name == "KEY_LEFT":
+                if target_x > 0:
+                    target_x -= 1
+                    self.highlight_target(flt=flt, point=fleet.Point(y=target_y, x=target_x), area=Areas.BG)
+            elif key.name == "KEY_RIGHT":
+                if target_x < fleet.GRID_SIZE - 1:
+                    target_x += 1
+                    self.highlight_target(flt=flt, point=fleet.Point(y=target_y, x=target_x), area=Areas.BG)
+            else:
+                continue
 
-            while True:
-                self.display_text("Firing column? ", Areas.BT)
-                col_guess = self.get_direction()
-                if col_guess.isdigit():
-                    col_guess_num = int(col_guess)
-                    self.display_text(f"", Areas.BT)
-                    if 0 <= col_guess_num <= fleet.GRID_SIZE:
-                        col_guess_num -= 1
-                        break
-
-            coords = fleet.Point(y=row_guess, x=col_guess_num)
-            if flt.at_point(coords) not in {"H", "M"}:
-                break
+        self.display_text("", Areas.BT)
+        flt.remove_all_highlights()
+        self.display_grid(flt.grid.ships_grid(False, False), show_ships=False, area=Areas.BG)
         return coords
 
     def show_game_over(self, winner):
         game_over_title = Align(
             align="center",
             style="red bold",
-            renderable=""" ██████╗  █████╗ ███╗   ███╗███████╗     ██████╗ ██╗   ██╗███████╗██████╗ 
+            renderable="""\
+ ██████╗  █████╗ ███╗   ███╗███████╗     ██████╗ ██╗   ██╗███████╗██████╗ 
 ██╔════╝ ██╔══██╗████╗ ████║██╔════╝    ██╔═══██╗██║   ██║██╔════╝██╔══██╗
 ██║  ███╗███████║██╔████╔██║█████╗      ██║   ██║██║   ██║█████╗  ██████╔╝
 ██║   ██║██╔══██║██║╚██╔╝██║██╔══╝      ██║   ██║╚██╗ ██╔╝██╔══╝  ██╔══██╗

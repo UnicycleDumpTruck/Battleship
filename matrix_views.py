@@ -9,6 +9,8 @@ from adafruit_ht16k33.matrix import Matrix8x8x2
 
 from blessed import Terminal
 
+from views import Areas
+
 from rich.traceback import install
 
 install(show_locals=True)
@@ -50,16 +52,16 @@ for cap in fleet.ship_capitals:
     theme_dict[cap.lower()] = guess_matrix.LED_GREEN
 
 
-class Areas(Enum):
-    TR = auto()  # Title Row
-    AG = auto()  # Player a guess grid display pad
-    AS = auto()  # Player a ships grid display pad
-    AT = auto()  # Player a status text/instructions
-    AF = auto()  # Player a feedback on last move
-    BG = auto()  # Player b guesses
-    BS = auto()  # Player b ships
-    BT = auto()  # Player b text
-    BF = auto()  # Player b feedback
+# class Areas(Enum):
+#     TR = auto()  # Title Row
+#     AG = auto()  # Player a guess grid display pad
+#     AS = auto()  # Player a ships grid display pad
+#     AT = auto()  # Player a status text/instructions
+#     AF = auto()  # Player a feedback on last move
+#     BG = auto()  # Player b guesses
+#     BS = auto()  # Player b ships
+#     BT = auto()  # Player b text
+#     BF = auto()  # Player b feedback
 
 
 class Matrices(Enum):
@@ -110,9 +112,7 @@ class MatrixView:
         elif area == Areas.BS:
             matrix = fleet_matrix
         else:
-            logger.debug(
-                f"no matrix set for {area} {area == Areas.BG or area == Areas.BS}"
-            )
+            logger.debug(f"no matrix set for {area} {area in {Areas.BG, Areas.BS}}")
             return
         for row_num, row in enumerate(grid):
             for col_num, square in enumerate(row):
@@ -120,6 +120,8 @@ class MatrixView:
                 if highlight := square.get_highlight():
                     matrix[row_num, col_num] = matrix.LED_YELLOW
                 else:
+                    if not show_ships and label in fleet.ship_capitals:
+                        label = "w"
                     matrix[row_num, col_num] = theme_dict[label]
         #         if not show_ships:
         #             if label in fleet.ship_capitals:
@@ -140,7 +142,7 @@ class MatrixView:
         # self.clear_and_print()
 
     def highlight_target(self, flt: fleet.Fleet, point: fleet.Point, area: Areas):
-        #flt.highlight_reticle(point)
+        flt.highlight_reticle(point)
         self.display_grid(
             flt.grid.ships_grid(False, False), show_ships=False, area=area
         )

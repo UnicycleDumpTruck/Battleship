@@ -166,6 +166,9 @@ class Square():
         """Set label for grid square, such as 'w' for water, 'p' for patrol boat."""
         self._label = label
 
+    def get_highlight(self):
+        return self.highlit
+
     def set_highlight(self, highlight_type: str):
         """Store type of highlight, perhaps primary or secondary."""
         self.highlit = highlight_type
@@ -204,7 +207,14 @@ class Grid:
             Point(x, y) for x in range(GRID_SIZE) for y in range(GRID_SIZE)
         ]
 
-    def ships_grid(self, show_ships: bool, headers: bool):
+    def highlighted_labels(self, show_ships: bool, headers: bool):
+        """Return 2-dimensional list of tuples with char and highlight status."""
+        pass
+
+    def ships_grid(self, show_ships: bool, headers:bool):
+        return self._grid
+
+    def not_ships_grid(self, show_ships: bool, headers: bool):
         """Return string representation of grid, with or without ships."""
         grid_str = ""
         if headers:
@@ -227,6 +237,7 @@ class Grid:
             grid_str += "\n"
         grid_str += "\n"
         return grid_str
+
 
 
 class Fleet:

@@ -1,5 +1,5 @@
 from enum import Enum, auto
-from typing import Tuple
+from typing import Tuple, List
 from loguru import logger
 import fleet
 import os
@@ -32,7 +32,15 @@ theme_dict = {
     "p": "red",
     "s": "red",
     "headings": "green",
+    " ": "none",
+    "\n": "none",
 }
+for cap in fleet.ship_capitals:
+    theme_dict[cap] = "bold blue"
+for head in fleet.headings:
+    theme_dict[head] = "green"
+
+
 custom_theme = Theme(theme_dict)
 console = Console(theme=custom_theme)
 
@@ -121,7 +129,22 @@ class RichView:
             val = self.term.getch()  # faster refresh than term.inkey
         return val
 
-    def display_grid(self, grid: str, ar: Areas):
+    def display_grid(self, grid: List[fleet.Square], ar: Areas):
+        styled_grid = Text()
+        for row in grid:
+            for square in row:
+                label = square.get_label()
+                highlight = square.get_highlight()
+                styled_grid.append(label, style=theme_dict[label])
+                if label != "\n":
+                    styled_grid.append(" ", None)
+            styled_grid.append("\n", None)
+
+        self.areas[ar].update(styled_grid)
+        self.clear_and_print()
+        
+
+    def not_display_grid(self, grid: str, ar: Areas):
         # self.scrn.addstr(grid)
         # self.scrn.refresh()
         styled_grid = Text()

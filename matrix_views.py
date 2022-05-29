@@ -115,8 +115,7 @@ class MatrixView:
         for row_num, row in enumerate(grid):
             for col_num, square in enumerate(row):
                 label = square.get_label()
-                highlight = square.highlight()
-                if highlight:
+                if highlight := square.get_highlight()
                     matrix[row_num, col_num] = matrix.LED_YELLOW
                 else:
                     matrix[row_num, col_num] = theme_dict[label]

@@ -91,7 +91,6 @@ class MatrixView:
         # os.system("clear")console.
         # print(self.full_layout)
         logger.warning("clear_and_print called!")
-        pass
 
     def update_area(self, area, text):
         logger.info(f"Area {area}: {text}")
@@ -116,7 +115,11 @@ class MatrixView:
         for row_num, row in enumerate(grid):
             for col_num, square in enumerate(row):
                 label = square.get_label()
-                matrix[row_num, col_num] = theme_dict[label]
+                highlight = square.highlight()
+                if highlight:
+                    matrix[row_num, col_num] = matrix.LED_YELLOW
+                else:
+                    matrix[row_num, col_num] = theme_dict[label]
         #         if not show_ships:
         #             if label in fleet.ship_capitals:
         #                 label = "w"

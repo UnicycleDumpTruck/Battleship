@@ -38,9 +38,9 @@ class Direction(Enum):
 ship_sizes = {
     "Patrol Boat": 2,
     "Submarine": 3,
-    #"Destroyer": 3,
+    # "Destroyer": 3,
     "Battleship": 4,
-    #"Aircraft Carrier": 5,
+    # "Aircraft Carrier": 5,
 }
 
 ship_capitals = set(boat[0] for boat in ship_sizes.keys())
@@ -82,6 +82,30 @@ def point_left(point: Point) -> Optional[Point]:
     return None if point.x < 1 else Point(point.x - 1, point.y)
 
 
+def point_upper_left(point: Point) -> Optional[Point]:
+    if point.y < 1 or point.x < 1:
+        return None
+    return Point(x=point.x - 1, y=point.y - 1)
+
+
+def point_upper_right(point: Point) -> Optional[Point]:
+    if point.y < 1 or point.x > GRID_SIZE - 2:
+        return None
+    return Point(x=point.x + 1, y=point.y - 1)
+
+
+def point_lower_left(point: Point) -> Optional[Point]:
+    if point.y > GRID_SIZE - 2 or point.x < 1:
+        return None
+    return Point(x=point.x - 1, y=point.y + 1)
+
+
+def point_lower_right(point: Point) -> Optional[Point]:
+    if point.y > GRID_SIZE - 2 or point.x > GRID_SIZE - 2:
+        return None
+    return Point(x=point.x + 1, y=point.y + 1)
+
+
 def point_right(point: Point) -> Optional[Point]:
     return None if point.x > GRID_SIZE - 2 else Point(point.x + 1, point.y)
 
@@ -94,6 +118,17 @@ def surrounding_points(point: Point) -> List:
     funcs = [point_above, point_left, point_right, point_below]
     surrounding = [f(point) for f in funcs]
     return list(filter(None, surrounding))
+
+
+def reticle_points(point: Point) -> List:
+    funcs = [
+        point_upper_left,
+        point_lower_left,
+        point_upper_right,
+        point_lower_right,
+    ]
+    corners = [f(point) for f in funcs]
+    return list(filter(None, corners))
 
 
 class Ship:
@@ -150,8 +185,8 @@ class Ship:
             self.ship_coords[key] = self.char().lower()
 
 
-class Square():
-    def __init__(self, x: int, y: int, label: str, highlit: str = ''):
+class Square:
+    def __init__(self, x: int, y: int, label: str, highlit: str = ""):
         """Initialize Square."""
         self.x = x
         self.y = y
@@ -175,7 +210,7 @@ class Square():
 
     def remove_highlight(self):
         """Remove highlighting."""
-        self.highlit = ''
+        self.highlit = ""
 
     def __eq__(self, other):
         """Return equality, checking only x and y."""
@@ -191,8 +226,11 @@ class Square():
 
 class Grid:
     """Grid of Squares containing characters and highlight status."""
+
     def __init__(self, side_length):
-        self._grid = [[Square(x, y, "w") for x in range(side_length)] for y in range(side_length)]
+        self._grid = [
+            [Square(x, y, "w") for x in range(side_length)] for y in range(side_length)
+        ]
 
     def get_char_at(self, coords: Optional[Point]) -> str:
         """Return water or letter of ship (sunk or not) at coords."""
@@ -203,9 +241,7 @@ class Grid:
 
     def list_of_squares_as_points(self):
         """Return a list of Points representing each grid square."""
-        return [
-            Point(x, y) for x in range(GRID_SIZE) for y in range(GRID_SIZE)
-        ]
+        return [Point(x, y) for x in range(GRID_SIZE) for y in range(GRID_SIZE)]
 
     def highlight_point(self, point: Point, highlight_type: str):
         self._grid[point.y][point.x].set_highlight(highlight_type)
@@ -220,12 +256,17 @@ class Grid:
         for row in self._grid:
             row[col].set_highlight(highlight_type)
 
+    def highlight_reticle(self, point: Point):
+        self.remove_all_highlights()
+        for pt in reticle_points(point):
+            self.highlight_point(pt)
+
     def remove_all_highlights(self):
         for row in self._grid:
             for square in row:
                 square.remove_highlight()
 
-    def ships_grid(self, show_ships: bool, headers:bool):
+    def ships_grid(self, show_ships: bool, headers: bool):
         return self._grid
 
     def grid_as_string(self, show_ships: bool, headers: bool):
@@ -244,14 +285,23 @@ class Grid:
                 if show_ships:
                     grid_str += column.get_label() + ""
                 else:
-                    if column.get_label() in {"a", "s", "p", "d", "b", "X", "H", "M", "w"}:
+                    if column.get_label() in {
+                        "a",
+                        "s",
+                        "p",
+                        "d",
+                        "b",
+                        "X",
+                        "H",
+                        "M",
+                        "w",
+                    }:
                         grid_str += column.get_label() + ""
                     else:
                         grid_str += "w"
             grid_str += "\n"
         grid_str += "\n"
         return grid_str
-
 
 
 class Fleet:
@@ -276,6 +326,9 @@ class Fleet:
     def highlight_col(self, col: int, highlight_type: str):
         self.grid.highlight_col(col, highlight_type)
 
+    def highlight_reticle(self, point: Point)
+        self.grid.highlight_reticle(point)
+
     def remove_all_highlights(self):
         self.grid.remove_all_highlights()
 
@@ -288,7 +341,6 @@ class Fleet:
     def at_point(self, coords: Optional[Point]) -> str:
         """Return character at given Point on grid. Used to check for duplicate shot."""
         return self.grid.get_char_at(coords) if coords else None
-
 
     def unsunk_hits(self) -> List[Point]:
         """Return list of points marked as hit, but not sunk."""

@@ -73,17 +73,17 @@ class MatrixView:
     def __init__(self, term: Terminal):
         self.term = term
 
-#        self.areas = {
-#            Areas.TR: "title_row",
-#            Areas.AG: "player_a guesses",
-#            Areas.AS: "player_a ships_row",
-#            Areas.AT: "player_a prompt_row",
-#            Areas.AF: "player_a feedback_row",
-#            Areas.BG: "player_b guesses_row",
-#            Areas.BS: "player_b ships_row",
-#            Areas.BT: "player_b prompt_row",
-#            Areas.BF: "player_b feedback_row",
-#        }
+        #        self.areas = {
+        #            Areas.TR: "title_row",
+        #            Areas.AG: "player_a guesses",
+        #            Areas.AS: "player_a ships_row",
+        #            Areas.AT: "player_a prompt_row",
+        #            Areas.AF: "player_a feedback_row",
+        #            Areas.BG: "player_b guesses_row",
+        #            Areas.BS: "player_b ships_row",
+        #            Areas.BT: "player_b prompt_row",
+        #            Areas.BF: "player_b feedback_row",
+        #        }
 
         self.clear_and_print()
 
@@ -110,7 +110,9 @@ class MatrixView:
         elif area == Areas.BS:
             matrix = fleet_matrix
         else:
-            logger.debug(f"no matrix set for {area} {area == Areas.BG or area == Areas.BS}")
+            logger.debug(
+                f"no matrix set for {area} {area == Areas.BG or area == Areas.BS}"
+            )
             return
         for row_num, row in enumerate(grid):
             for col_num, square in enumerate(row):
@@ -138,6 +140,9 @@ class MatrixView:
         # self.clear_and_print()
 
     def highlight_target(self, flt: fleet.Fleet, point: fleet.Point, area: Areas):
+        flt.highlight_reticle(point)
+
+    def not_highlight_target(self, flt: fleet.Fleet, point: fleet.Point, area: Areas):
         flt.remove_all_highlights()
         flt.highlight_row(point.y, "yellow")
         flt.highlight_col(point.x, "yellow")

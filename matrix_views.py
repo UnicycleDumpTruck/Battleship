@@ -140,7 +140,10 @@ class MatrixView:
         # self.clear_and_print()
 
     def highlight_target(self, flt: fleet.Fleet, point: fleet.Point, area: Areas):
-        flt.highlight_reticle(point)
+        #flt.highlight_reticle(point)
+        self.display_grid(
+            flt.grid.ships_grid(False, False), show_ships=False, area=area
+        )
 
     def not_highlight_target(self, flt: fleet.Fleet, point: fleet.Point, area: Areas):
         flt.remove_all_highlights()

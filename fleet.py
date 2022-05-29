@@ -259,7 +259,7 @@ class Grid:
     def highlight_reticle(self, point: Point):
         self.remove_all_highlights()
         for pt in reticle_points(point):
-            self.highlight_point(pt)
+            self.highlight_point(pt, "yellow")
 
     def remove_all_highlights(self):
         for row in self._grid:
@@ -326,7 +326,7 @@ class Fleet:
     def highlight_col(self, col: int, highlight_type: str):
         self.grid.highlight_col(col, highlight_type)
 
-    def highlight_reticle(self, point: Point)
+    def highlight_reticle(self, point: Point):
         self.grid.highlight_reticle(point)
 
     def remove_all_highlights(self):

@@ -46,8 +46,8 @@ theme_dict = {
     "X": guess_matrix.LED_GREEN,
 }
 for cap in fleet.ship_capitals:
-    theme_dict[cap] = guess_matrix.LED_RED
-    theme_dict[cap.lower()] = guess_matrix.LED_RED
+    theme_dict[cap] = guess_matrix.LED_GREEN
+    theme_dict[cap.lower()] = guess_matrix.LED_GREEN
 
 
 class Areas(Enum):
@@ -103,14 +103,18 @@ class MatrixView:
 
     def display_grid(self, grid: List[fleet.Square], show_ships: bool, area: Areas):
         # styled_grid = ""
-        if area == self.areas[Areas.BG]:
+        logger.debug(f"Displaying grid {area}")
+        if area is Areas.BG:
             matrix = guess_matrix
-        else:
+        elif area is Areas.BS:
             matrix = fleet_matrix
+        else:
+            logger.debug(f"no matrix set for {area}")
+            return
         for row_num, row in enumerate(grid):
             for col_num, square in enumerate(row):
                 label = square.get_label()
-                matrix[col_num, row_num] = theme_dict[label]
+                matrix[row_num, col_num] = theme_dict[label]
         #         if not show_ships:
         #             if label in fleet.ship_capitals:
         #                 label = "w"

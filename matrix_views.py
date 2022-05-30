@@ -1,93 +1,38 @@
 from enum import Enum, auto
 from typing import List
-from loguru import logger
-import fleet
 import os
 
 import board
 from adafruit_ht16k33.matrix import Matrix8x8x2
-
+from loguru import logger
 from blessed import Terminal
-
-from views import Areas
-
 from rich.traceback import install
+
+import fleet
+from views import Areas
 
 install(show_locals=True)
 
 i2c = board.I2C()
 
-guess_matrix = Matrix8x8x2(i2c, 0x70)
-fleet_matrix = Matrix8x8x2(i2c, 0x71)
-
-# Available LED colors
-# matrix.LED_OFF
-# matrix.LED_GREEN
-# matrix.LED_YELLOW
-# matrix.LED_RED
-
-# Guess Grid
-# Hit: red
-# Miss: yellow
-# Sunk: green
-# Else: off
-# Highlight: dim yellow
-
-# Fleet Grid
-# Hit: red
-# Miss: yellow
-# Ship: green
-# Highlight: dim yellow
-
-
-theme_dict = {
-    "w": guess_matrix.LED_OFF,
-    "M": guess_matrix.LED_YELLOW,
-    "H": guess_matrix.LED_RED,
-    "G": guess_matrix.LED_GREEN,
-    "X": guess_matrix.LED_GREEN,
-}
-for cap in fleet.ship_capitals:
-    theme_dict[cap] = guess_matrix.LED_GREEN
-    theme_dict[cap.lower()] = guess_matrix.LED_GREEN
-
-
-# class Areas(Enum):
-#     TR = auto()  # Title Row
-#     AG = auto()  # Player a guess grid display pad
-#     AS = auto()  # Player a ships grid display pad
-#     AT = auto()  # Player a status text/instructions
-#     AF = auto()  # Player a feedback on last move
-#     BG = auto()  # Player b guesses
-#     BS = auto()  # Player b ships
-#     BT = auto()  # Player b text
-#     BF = auto()  # Player b feedback
-
-
-class Matrices(Enum):
-    AG = auto()  # Player A guesses
-    AS = auto()  # Player A ships
-    BG = auto()  # Player B guesses
-    BS = auto()  # Player B ships
-
 
 class MatrixView:
     def __init__(self, term: Terminal):
         self.term = term
-
-        #        self.areas = {
-        #            Areas.TR: "title_row",
-        #            Areas.AG: "player_a guesses",
-        #            Areas.AS: "player_a ships_row",
-        #            Areas.AT: "player_a prompt_row",
-        #            Areas.AF: "player_a feedback_row",
-        #            Areas.BG: "player_b guesses_row",
-        #            Areas.BS: "player_b ships_row",
-        #            Areas.BT: "player_b prompt_row",
-        #            Areas.BF: "player_b feedback_row",
-        #        }
-
         self.clear_and_print()
+        self.guess_matrix = Matrix8x8x2(i2c, 0x70)
+        self.fleet_matrix = Matrix8x8x2(i2c, 0x71)
+
+        self.theme_dict = {
+            "w": self.guess_matrix.LED_OFF,  # Water
+            "M": self.guess_matrix.LED_YELLOW,  # Miss
+            "H": self.guess_matrix.LED_RED,  # Hit
+            "G": self.guess_matrix.LED_GREEN,  # Fleet ship or sunk ship
+            # "X": guess_matrix.LED_GREEN,    # Sunk ship, not used
+        }
+        for cap in fleet.ship_capitals:
+            self.theme_dict[cap] = self.guess_matrix.LED_GREEN
+            self.theme_dict[cap.lower()] = self.guess_matrix.LED_GREEN
 
     def clear_and_print(self):
         # os.system("clear")console.
@@ -104,15 +49,14 @@ class MatrixView:
             val = self.term.inkey()
         return val
 
-    def display_grid(self, grid: List[fleet.Square], show_ships: bool, area: Areas):
-        # styled_grid = ""
-        logger.debug(f"Displaying grid {area}")
+    def display_grid(
+        self, grid: List[List[fleet.Square]], show_ships: bool, area: Areas
+    ):
         if area == Areas.BG:
-            matrix = guess_matrix
+            matrix = self.guess_matrix
         elif area == Areas.BS:
-            matrix = fleet_matrix
+            matrix = self.fleet_matrix
         else:
-            logger.debug(f"no matrix set for {area} {area in {Areas.BG, Areas.BS}}")
             return
         for row_num, row in enumerate(grid):
             for col_num, square in enumerate(row):
@@ -122,24 +66,10 @@ class MatrixView:
                 else:
                     if not show_ships and label in fleet.ship_capitals:
                         label = "w"
-                    matrix[row_num, col_num] = theme_dict[label]
-        #         if not show_ships:
-        #             if label in fleet.ship_capitals:
-        #                 label = "w"
-        #         highlight = square.get_highlight()
-        #         theme = theme_dict.get(label, '')
-        #         style = f"{theme}{' on ' if highlight else ''}{highlight}"
-        #         styled_grid.append(label, style=style)
-        #         if label != "\n":
-        #             styled_grid.append(" ", None)
-        #     styled_grid.append("\n", None)
-
-        # self.areas[area].update(styled_grid)
-        # self.clear_and_print()
+                    matrix[row_num, col_num] = self.theme_dict[label]
 
     def display_text(self, text: str, ar: Areas):
         logger.info(text)
-        # self.clear_and_print()
 
     def highlight_target(self, flt: fleet.Fleet, point: fleet.Point, area: Areas):
         flt.highlight_reticle(point)
@@ -160,7 +90,7 @@ class MatrixView:
         # TODO: don't allow firing on previously fired-on points
         target_x = 3
         target_y = 3
-        # self.display_text("Arrows to choose, Enter to fire.", Areas.BT)
+        logger.info("Arrows to choose, Enter to fire.")
         self.highlight_target(
             flt=flt, point=fleet.Point(y=target_y, x=target_x), area=Areas.BG
         )
@@ -204,7 +134,6 @@ class MatrixView:
             else:
                 continue
 
-        # self.display_text("", Areas.BT)
         flt.remove_all_highlights()
         self.display_grid(
             flt.grid.ships_grid(False, False), show_ships=False, area=Areas.BG

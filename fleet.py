@@ -7,6 +7,7 @@ import contextlib
 with contextlib.suppress(ImportError):
     from typing import Tuple, Optional, NamedTuple, List, Union
 from rich.traceback import install
+from rich.progress import track
 from loguru import logger
 
 install(show_locals=True)
@@ -18,13 +19,11 @@ GRID_SIZE = 7
 headings = [chr(number + ord("a")) for number in range(GRID_SIZE)]
 
 
-# Orientation state of ship on grid
 class Orientation(Enum):
     HORIZONTAL = 1
     VERTICAL = 2
 
 
-# Commands for flipping, not moving, or direction to move points & ships
 class Direction(Enum):
     UP = 1
     DOWN = 2
@@ -43,7 +42,7 @@ ship_sizes = {
     # "Aircraft Carrier": 5,
 }
 
-ship_capitals = set(boat[0] for boat in ship_sizes.keys())
+ship_capitals = {boat[0] for boat in ship_sizes}
 
 hit_chars = {"H", "M", None}
 hit_chars.update(c.lower() for c in ship_capitals)
@@ -150,13 +149,12 @@ class Ship:
         self.ship_temp = ship_temp
         self.ship_sunk = False
         self.ship_coords = {}
-        if ship_horiz:
-            for i in range(ship_size):
+        for i in range(ship_size):
+            if ship_horiz:
                 self.ship_coords[
                     point_moved(ship_start, Direction.DOWN, i)
                 ] = self.char()
-        else:
-            for i in range(ship_size):
+            else:
                 self.ship_coords[
                     point_moved(ship_start, Direction.RIGHT, i)
                 ] = self.char()
@@ -218,7 +216,7 @@ class Square:
 
     def __hash__(self) -> int:
         """Return hash of only x and y."""
-        return hash(self._x, self._y)
+        return hash((self.x, self.y))
 
     def __repr__(self) -> str:
         return self._label
@@ -283,22 +281,21 @@ class Grid:
                 grid_str += ""
             for column in row:
                 if show_ships:
-                    grid_str += column.get_label() + ""
+                    grid_str += column.get_label()
+                elif column.get_label() in {
+                    "a",
+                    "s",
+                    "p",
+                    "d",
+                    "b",
+                    "X",
+                    "H",
+                    "M",
+                    "w",
+                }:
+                    grid_str += column.get_label()
                 else:
-                    if column.get_label() in {
-                        "a",
-                        "s",
-                        "p",
-                        "d",
-                        "b",
-                        "X",
-                        "H",
-                        "M",
-                        "w",
-                    }:
-                        grid_str += column.get_label() + ""
-                    else:
-                        grid_str += "w"
+                    grid_str += "w"
             grid_str += "\n"
         grid_str += "\n"
         return grid_str
@@ -505,7 +502,9 @@ class Fleet:
 
     def deploy_computer_fleet(self):
         """Generate randomly placed Fleet for the computer side."""
-        for ship_type in ship_sizes.keys():
+        for ship_type in track(
+            ship_sizes.keys(), description="Deploying computer ships..."
+        ):
             while True:
                 ship = Ship(
                     ship_type=ship_type,

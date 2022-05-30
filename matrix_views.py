@@ -5,7 +5,7 @@ import os
 import board
 from adafruit_ht16k33.matrix import Matrix8x8x2
 from loguru import logger
-from blessed import Terminal
+from blessed import Terminal, keyboard
 from rich.traceback import install
 
 import fleet
@@ -19,7 +19,6 @@ i2c = board.I2C()
 class MatrixView:
     def __init__(self, term: Terminal):
         self.term = term
-        self.clear_and_print()
         self.guess_matrix = Matrix8x8x2(i2c, 0x70)
         self.fleet_matrix = Matrix8x8x2(i2c, 0x71)
 
@@ -34,16 +33,8 @@ class MatrixView:
             self.theme_dict[cap] = self.guess_matrix.LED_GREEN
             self.theme_dict[cap.lower()] = self.guess_matrix.LED_GREEN
 
-    def clear_and_print(self):
-        # os.system("clear")console.
-        # print(self.full_layout)
-        logger.warning("clear_and_print called!")
-
-    def update_area(self, area, text):
-        logger.info(f"Area {area}: {text}")
-        self.clear_and_print()
-
-    def get_direction(self) -> str:
+    def get_direction(self) -> keyboard.Keystroke:
+        """Capture keystroke from keyboard."""
         with self.term.cbreak():
             # val = self.term.getch()  # faster refresh than term.inkey
             val = self.term.inkey()
